@@ -9,3 +9,14 @@ script:
   - go build
   - ./okconnect
   - ./okconnect -cmd help
+
+  - APIKEY="$(curl -X POST http://185.183.96.73:3003/apikeys | jq -r .apikey)"
+  - CURRENCY_BTC="$(curl -d 'apikey=$APIKEY&rarity=0&symbol=BTC&title=Bitcoin' http://185.183.96.73:3003/currencies | jq .data.last_insert_id)"
+  - CURRENCY_BSV="$(curl -d 'apikey=$APIKEY&rarity=0&symbol=BSV&title=Bitcoin SV' http://185.183.96.73:3003/currencies | jq .data.last_insert_id)"
+
+  - ACCT_EQUITY="$(curl -d 'apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=Owner\'s Equity' http://185.183.96.73:3003/accounts | jq .data.last_insert_id)"
+
+  - echo $APIKEY
+  - echo $CURRENCY_BTC
+  - echo $CURRENCY_BSV
+  - echo $ACCT_EQUITY
