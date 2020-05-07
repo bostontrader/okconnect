@@ -1,0 +1,7 @@
+language: generic
+
+script:
+  - git clone https://github.com/bostontrader/okconnect
+  - cd okconnect
+  - go build
+  - ./okconnect
