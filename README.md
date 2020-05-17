@@ -137,3 +137,22 @@ curl -d "apikey=$APIKEY&account_id=$ACCT_SPOT_HOLD&category_id=$CAT_ASSET" $BSER
 curl -d "apikey=$APIKEY&account_id=$ACCT_FEE&category_id=$CAT_EXPENSE" $BSERVER/acctcats
 curl -d "apikey=$APIKEY&account_id=$ACCT_EQUITY&category_id=$CAT_EQUITY" $BSERVER/acctcats
 ```
+I. With these accounts let's make an initial transaction to contribute some BTC to our books:
+
+2020-05-01T12:34:55.000Z
+Initial Equity
+
+DR Local Wallet   BTC 2.0
+CR Owner's Equity BTC 2.0
+
+We can do this manually using the Bookwerx UI and going to the Transactions tab.  First we create the transaction, then we edit the transaction to add the two distributions (the dr and cr bits).
+
+```
+TXID1="$(curl -d "apikey=$APIKEY&notes=Initial Equity&time=2020-05-01T12:34:55.000Z" $BSERVER/transactions | jq .data.last_insert_id)"
+curl -d "&account_id=$ACCT_LCL_WALLET&apikey=$APIKEY&amount=2&amount_exp=0&transaction_id=$TXID1" $BSERVER/distributions
+curl -d "&account_id=$ACCT_EQUITY&apikey=$APIKEY&amount=-2&amount_exp=0&transaction_id=$TXID1" $BSERVER/distributions
+```
+
+Notice that in the above commands, we save the transaction ID because we needed that to create the distributions.  But we didn't save the IDs for the distributions because we just don't care.
+
+Also note the method that Bookwerx uses to record numbers.  It uses a decimal floating-point system that enables it to _exactly_ record the numbers we see when dealing with crypto coins.
