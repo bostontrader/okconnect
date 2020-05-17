@@ -5,11 +5,11 @@
 
 OKEx provides an API for using their service.  That's fine and dandy but in order to make effective use of this API, you will be greatly convenienced by acquiring a handful of additional tools.  More specifically:
 
-1. [OKCatbox](https://github.com/bostontrader/okcatbox). You will need an OKEx API sandbox to play in.  Learning how to use the real OKEx API looks suspiciously close to DOS and general hackery from their point of view.  Perhaps it's better to beat a sandbox to death first, before trying to use the real OKEx API.
+1. [Bookwerx](https://github.com/bostontrader/bookwerx-core-rust). You will need some method of bookkeeping. The only reason anybody cares about an API is so that they can work the service using other software.  What do you do with the OKEx API?  That's right... you place orders and buy and sell things. Placing, fulfilling, and cancelling orders spawn a remarkably tedious snake nest of bookkeeping tasks.  Ignoring the bookkeeping is the method of chumps.   The bookkeeping and account balance information provided by the OKEx API is, ahem, less than divinely inspired.  It's a disorganized jumble permeated with documentation errors, round-off errors, and various blind-spots. Dealing with the bookkeeping manually will easily drive you mad. Unless of course you have bookwerx in the arena with you.
 
-2. [Bookwerx](https://github.com/bostontrader/bookwerx-core-rust). You will also need some method of bookkeeping. The only reason anybody cares about an API is so that they can work the service using other software.  What do you do with OKEx?  That's right... you place orders and buy and sell things. Placing, fulfilling, and cancelling orders spawn a remarkably tedious snake nest of bookkeeping tasks.  Ignoring the bookkeeping is the method of chumps.   The bookkeeping and account balance information provided by the OKEx API is, ahem, less than well thought out.  It's also permeated with round-off error and various blind-spots. Dealing with the bookkeeping manually will easily drive you mad. Unless of course you have bookwerx in the arena with you.
+2. [OKCatbox](https://github.com/bostontrader/okcatbox). You might also want an OKEx API sandbox to play in.  Learning how to use the real OKEx API looks suspiciously close to DOS and general hackery from their point of view.  Perhaps it's better to taunt a sandbox first, before trying to use the real OKEx API.
 
-OKConnect is the glue that binds the OKEx (or OKCatbox) API and Bookwerx together. With OKConnect, you can focus on higher-level tasks such as placing and cancelling orders, dealing with the consequences of order fulfillment, as well as reconciliation of the Bookwerx and OKEx records,  while letting the OKEx (or OKCatbox) API and Bookwerx handle the low level details.
+OKConnect is the glue that binds the OKEx (or OKCatbox) API and Bookwerx together. With OKConnect, you can focus on higher-level tasks such as placing and cancelling orders, dealing with the consequences of order fulfillment, as well as reconciliation of the Bookwerx and OKEx records,  while letting the OKEx (or OKCatbox) API and Bookwerx figure out the bookkeeping.
 
 ## Getting Started
 
@@ -29,145 +29,111 @@ In order for OKConnect to work it's going to need:
 
 * Access to the OKEx API or a functioning mimic such as [OKCatbox](https://github.com/bostontrader/okcatbox).
 
-* Access to a [Bookwerx](https://github.com/bostontrader/bookwerx-core-rust) server.
+* Access to a [Bookwerx Core](https://github.com/bostontrader/bookwerx-core-rust) server.
 
 * A YML configuration file that ties these two things together.  
 
-Unfortunately, finding and configuring all this is rather tedious.  Fortunately we have the following tutorial to walk you through an example.
+Unfortunately, finding, installing, and configuring all this is rather tedious.  Fortunately we have the following tutorial to walk you through an example.
 
-In this example, we're going to figure out how to persuade OKConnect to place an order to sell 1 BTC and buy 25 BSV at the implied price of BSVBTC = 0.04.  Along the way we will also use OKConnect to compare the bookkeeping records in bookwerx with the account balances on OKCatbox.
+In this example, we're going to figure out how to persuade OKConnect to place an order to sell 1 BTC and buy 25 BSV at the implied price of BSVBTC = 0.04. We will use a public demonstration of OKCatbox to do this.  Along the way we will also use OKConnect to compare the bookkeeping records in Bookwerx with the account balances on OKCatbox.
 
 
 1. Setup Bookwerx:
 
-A. Our first order of business is to get the bookwerx bookkeeping going.  Although it is moderately elaborate to setup we present a [public demonstration version of the bookwerx UI](http://185.183.96.73:3005/).  You can follow this tutorial manually using the Bookwerx UI and it will show you the actual http requests that it uses to do its job.
+A. Our first order of business is to get the Bookwerx bookkeeping going.  Although it is moderately elaborate to install from scratch, we present a [public demonstration version of the Bookwerx UI](http://185.183.96.73:3005/).  You can follow this tutorial manually using the Bookwerx UI. As an extra bonus, the Bookwerx UI will show you the actual http requests that it uses to do its job.
+
+B. Using the Bookwerx UI go to the BServer tab, and enter http://185.183.96.73:3003.  The UI that you are using communicates with a public demonstration Bookwerx Core server via a RESTful API. Be sure to test the connection in order to proceed.
+
+We're going to use the URL of the Bookwerx Core server in subsequent requests, so let's save it as a shell variable:
+```
+BSERVER="http://185.183.96.73:3003"
+```
+
+Also notice that this URL is not https.  That's ok for a public demonstration tutorial but if you were using real data you would probably want to use https.
   
-B. Browse to http://185.183.96.73:3005/apikeys and either request a new API key or use any key that you have created in the past.
-```
-curl -X POST http://185.183.96.73:3003/apikeys
-```
-Save this as an env variable named APIKEY
+C. Using the Bookwerx UI go to the newly visible API key tab and either request a new API key or use any key you have created in the past.  So for example, if you had earlier started this tutorial with a given API key, enter that key now to continue.  
 
-C. Since we are going to use BTC and BSV in our subsequent transactions, we must first define them as currencies in bookwerx.  Do so now.
-
+D. Notice that the Bookwerx UI shows the http request that it will use in order to get a new key.  You could submit this request manually, using curl:
 ```
-curl -d 'apikey=$APIKEY&rarity=0&symbol=BTC&title=Bitcoin' http://185.183.96.73:3003/currencies
-curl -d "apikey=$APIKEY&rarity=0&symbol=BSV&title=Bitcoin SV" http://185.183.96.73:3003/currencies
+curl -X POST $BSERVER/apikeys
 ```
 
-D. Next, let's anticipate some accounts that we might need:  Recall that each account has a description and a currency.  Two accounts can have the same description as long as they have different currencies.
+The response looks intuitively obvious to our human eyeballs.  However, we're going to need to use this value repeatedly in the future, so it would be really useful to parse this response, pick out just the value of the apikey, and save just that value as a shell variable.  We can easily parse this using [jq](https://stedolan.github.io/jq/). Assuming jq is properly installed and combining all this new-found learning into one command yields:
 
-Owner's Equity	    BTC
-Local Wallet        BTC
+```
+APIKEY="$(curl -X POST $BSERVER/apikeys | jq -r .apikey)"
+```
 
-OKEx Funding	    BTC
+E. Since we are going to use BTC and BSV in our subsequent transactions, we must first define them as currencies in Bookwerx. We can do this manually using the Bookwerx UI by going to the Currencies tab.
 
-Fee         BSV
+As with the APIkey, the Bookwerx UI shows us the http request that it will submit to the Bookwerx Core server to create these new currency records.  If the request succeeds then we will receive the ID of the newly created currency.  We want to be able to use this ID subsequently, so we again want to parse the response using our new friend jq and save the value as a shell variable.
 
-OKEx Spot	    BTC
-OKEx Spot-Hold 	BTC
-OKEx Spot	    BSV
+```
+CURRENCY_BTC="$(curl -d "apikey=$APIKEY&rarity=0&symbol=BTC&title=Bitcoin" $BSERVER/currencies | jq .data.last_insert_id)"
+CURRENCY_BSV="$(curl -d "apikey=$APIKEY&rarity=0&symbol=BSV&title=Bitcoin SV" $BSERVER/currencies | jq .data.last_insert_id)"
+```
+Upon close inspection you can see a parameter named "rarity".  It's harmless but not relevant for this tutorial so just ignore it.
 
-E. Next, in order to produce balance sheet and income statement style reports, we'll need to define some useful categories that we can use to tag the accounts:
+Another wrinkle is that we have double quotes inside double quotes.  Oddly enough this seems to work for us, but this looks like something that might go wrong for somebody else, so be wary of this.
+
+
+F. Next, let's anticipate some accounts that we might need. We can do this manually using the Bookwerx UI by going to the Accounts tab.   Realize that each account has a description and a currency.  Two accounts can have the same description as long as they have different currencies.
+
+| Description   | Currency |
+|:--------------|----------|
+|Owner's Equity	|       BTC|
+|Local Wallet   |       BTC|
+|OKEx Funding	|       BTC|
+|Fee            |       BSV|
+|OKEx Spot	    |       BTC|
+|OKEx Spot-Hold | 	    BTC|
+|OKEx Spot	    |       BSV|
+
+As with the currencies you can see a parameter named "rarity" and it's still harmless and irrelevant for this tutorial so just ignore it.
+
+In order to save the IDs of the newly created accounts:
+```
+ACCT_EQUITY="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=Owners Equity" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_LCL_WALLET="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=Local Wallet" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_FUNDING="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=OKEx Funding" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_FEE="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=Fee" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_SPOT_BTC="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=OKEx Spot" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_SPOT_BSV="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BSV&title=OKEx Spot" $BSERVER/accounts | jq .data.last_insert_id)"
+ACCT_SPOT_HOLD="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&title=OKEx Spot-Hold" $BSERVER/accounts | jq .data.last_insert_id)"
+```
+G. Next, in order to produce balance sheet and income statement style reports, we'll need to define some useful categories that we can use to tag the accounts: We can do this manually using the Bookwerx UI by going to the Categories tab.
 
 Ex	Expenses
 Eq	Equity
 A	Assets
 
-F. Finally, let's combine the accounts and categories:
-
-A	OKEx Funding    BTC
-A	OKEx Spot	    BTC
-A	OKEx Spot-Hold  BTC
-A	OKEx Spot	    BSV
-A	Local Wallet	BTC
-
-Ex	Fee	            BTC
-Eq	Owner's Equity	BTC
-
-The meaning of these accounts is probably mostly self-evident.  But we'll examine them more closely soon.
-
-G. With these accounts let's make an initial transaction to contribute some BTC to our books:
-
-2020-05-01T12:34:55.000Z
-Initial Equity
-
-  DR Local Wallet   BTC 2.0
-  CR Owner's Equity BTC 2.0
-
-If we produce a balance sheet as of now, you can see that everything looks as expected.  Likewise, with a PNL over any timespan.
-
-
-2. Setup OKcatbox
-
-As you have learned, pretty soon we're going to need to use the OKEx API.  As mentioned earlier, we don't want to taunt the real API until we're fairly substantially ready to do so.  At this time we're not worthy.  So we'll use the OKCatbox instead.
-
- We will use a public demonstration of the [OKCatbox](https://github.com/bostontrader/okcatbox) accessible at http://185.183.96.73:8090 to do this.  Let's refer to this URL as OKEXURL even though we know this is only a mimic of the same, not the real deal.
-
-A. As with the real API we'll need access credentials.  
-
-Using a tool of your choice, POST OKEXURL/credentials.  Save the result body in a file of your choice.  Let's call this file OKEXCredentials.  Please realize that the /credentials endpoint is only a convenience provided by OKCatbox.  It is not present in the real OKEx API and the credentials produced will be useless there.
- 
-3. Setup OKConnect
-
-Establish a YML config file in a location of your choice.  Configure it thus:
-
-bookwerx
-    apikey : The API Key you acuired earlier
-
-okex
-    credentials : The full path to the file you created to hold your okex credentials.
-
-compare
-    okex
-        funding
-            btc : 5
-            
-        spot
-            btc : 10
-
-The compare key enables us to describe which accounts on OKEx correspond with which bookwerx account ids.
-
-4. Hello compare
-
-One important task of OKConnect is to help us reconcile our Bookwerx and OKEx records.  Using the associated APIs for each we can extract the information we need, make suitable comparisons, and illustrate any differences.  So now that everything is setup (hopefully properly) we can just ask okconnect to compare the balances!
-
+In order to save the IDs of the newly created categories:
 ```
-okconnect -cmd compare -config myconfig
+CAT_EQUITY="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Equity" $BSERVER/categories | jq .data.last_insert_id)"
+CAT_EXPENSE="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Expenses" $BSERVER/categories | jq .data.last_insert_id)"
+CAT_ASSET="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Assets" $BSERVER/categories | jq .data.last_insert_id)"
 ```
 
-Tada!  Look! No differences.  At this time bookwerx and okex should both agree that there are zero balances anywhere on the OKEx service.
+H. Finally, let's tag the accounts with suitable categories. We can do this manually using the Bookwerx UI by going to the Categories tab and then click on the "Accounts" button for a particular category and then select the accounts that should be tagged with the given category.
 
-5. Deposit BTC with OKEx
+| Category | Account       | Currency|
+|----------|---------------|---------|
+|A	       |OKEx Funding   | BTC     |
+|A	       |OKEx Spot	   | BTC     |
+|A	       |OKEx Spot-Hold | BTC     |
+|A	       |OKEx Spot	   | BSV     |
+|A	       |Local Wallet   | BTC     |
+|Ex	       |Fee	           | BTC     |
+|Eq	       |Owner's Equity | BTC     |
 
-The next step is to transfer BTC from our local wallet to OKEx.  This step involves good news and bad news.  The bad news is that making this transfer can be an insanely tedious thing to do if we contemplate the nuances too closely.  For a good time please examine our treatise on this bold assertion.  However, the good news is that we're going to make some simplifying assumptions to make this a lot easier.
-
-5.1. Manually initiate a coin transfer using your method of choice.  If we're using OKCatbox we just pretend to do this.  If we were using the real OKEx server then we would do this for real.  Either way, we tell this to OKConnect. 
-```
-okconnect -cmd deposit -currency btc -amount 500 -timestamp=dlksjdlfk -addr aaa -txid tttttt 
-```
-
-5.2 Compare
-```
-okconnect -cmd recon
-```
-OKCatbox has heard about the alleged deposit but has not yet heard the broadcast transaction so no account balance info has changed. Nothing has changed in bookwerx either so everything still compares.
-
-If you do this quickly for the real OKEx server, you get the same results.
-
-5.3 catbox aux-api hear broadcast
+In this case, even though we still make http requests to do this, we don't care about saving any information from the responses.
 
 ```
-okcatboxurl/hear-broadcast?txid=ttttt
+curl -d "apikey=$APIKEY&account_id=$ACCT_LCL_WALLET&category_id=$CAT_ASSET" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_FUNDING&category_id=$CAT_ASSET" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_SPOT_BTC&category_id=$CAT_ASSET" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_SPOT_BSV&category_id=$CAT_ASSET" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_SPOT_HOLD&category_id=$CAT_ASSET" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_FEE&category_id=$CAT_EXPENSE" $BSERVER/acctcats
+curl -d "apikey=$APIKEY&account_id=$ACCT_EQUITY&category_id=$CAT_EQUITY" $BSERVER/acctcats
 ```
-
-This forces the catbox to hear the txid.  For the real server we don't need this.
-
-5.4 Compare again
-```
-okconnect -cmd recon
-```
-OKCatbox has now heard about the alleged deposit as has observed the broadcast transaction.  Nothing has changed in bookwerx or OKCatbox so everything still reconciles.
-
-
-If you do this quickly for the real server, you get the same results.

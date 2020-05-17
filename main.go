@@ -3,18 +3,40 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"log"
+	//"log"
 	"os"
 )
 
+// What account type.  Funding, Spot.
+type Category struct {
+	Category   string
+	Currencies []Cur
+}
+
+type Cur struct {
+	CurrencyID string
+	Hold       int
+	Available  int
+}
+
+type BookwerxConfig struct {
+	APIKey string
+	Server string
+}
+
+type OKExConfig struct {
+	Credentials string
+	Server      string
+}
+
+type CompareConfig struct {
+	Funding []Cur
+	Spot    []Cur
+}
 type Config struct {
-	A string
-	B struct {
-		RenamedC int   `yaml:"c"`
-		D        []int `yaml:",flow"`
-	}
+	BookwerxConfig BookwerxConfig
+	OKExConfig     OKExConfig
+	CompareConfig  CompareConfig
 }
 
 func main() {
@@ -32,50 +54,13 @@ func main() {
 	fmt.Println("config:", *config)
 	fmt.Println("keyfile:", *okCredentialsFile)
 
-	data, err := ioutil.ReadFile(*config)
-	if err != nil {
-		fmt.Print(err)
-	}
-
-	t := Config{}
-
-	err = yaml.Unmarshal([]byte(data), &t)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	fmt.Printf("--- t:\n%v\n\n", t)
-
-	d, err := yaml.Marshal(&t)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	fmt.Printf("--- t dump:\n%s\n\n", string(d))
-
-	m := make(map[interface{}]interface{})
-
-	err = yaml.Unmarshal([]byte(data), &m)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	fmt.Printf("--- m:\n%v\n\n", m)
-
-	d, err = yaml.Marshal(&m)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	fmt.Printf("--- m dump:\n%s\n\n", string(d))
-
 	switch *cmd {
 	case "help":
 		fmt.Println("Available commands:")
 		fmt.Println("help\tGuess what this command does?")
 		fmt.Println("compare\tCompare the balances between OKEx and Bookwerx")
 
-	case "compare":
-		fmt.Println("balance in okex....")
-		fmt.Println("balance in bookwerx....")
-
 	default:
-		fmt.Println("Unknown endpoint ", *cmd)
+		fmt.Println("Unknown command ", *cmd)
 	}
 }
