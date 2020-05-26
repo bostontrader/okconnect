@@ -137,10 +137,6 @@ H. Finally, let's tag the accounts with suitable categories. We can do this manu
 
 In this case, even though we still make http requests to do this, we don't care about saving any information from the responses.
 
-
-
-
-
 ```
 curl -d "apikey=$APIKEY&account_id=$ACCT_LCL_WALLET&category_id=$CAT_ASSET" $BSERVER/acctcats
 curl -d "apikey=$APIKEY&account_id=$ACCT_FUNDING&category_id=$CAT_ASSET" $BSERVER/acctcats
@@ -172,3 +168,19 @@ Also note the method that Bookwerx uses to record numbers.  It uses a decimal fl
 
 J. If we produce a balance sheet as of a suitable time, such as now, it looks as expected.  Likewise, a PNL over any timespan, such as all of time, also looks as expected.
 
+2. Setup OKcatbox
+
+As you have probably surmised, pretty soon we're going to need to use the OKEx API.  However, as mentioned earlier, we don't want to taunt the real API until we're fairly substantially ready to do so.  At this time we're not worthy.  So we'll use an OKCatbox instead.
+
+We will use a public demonstration of the [OKCatbox](https://github.com/bostontrader/okcatbox) accessible at http://185.183.96.73:8090 to do this.  Let's refer to this URL as OKEXURL even though we know this is only a mimic of the same, not the real deal. In fact, let's save this as a shell variable also.
+
+OKEXURL="http://185.183.96.73:8090"
+
+A. As with the real API we'll need access credentials.  
+
+```
+OKEX_CREDENTIALS=okcatbox.json
+curl -X POST $OKEXURL/credentials --output $OKEX_CREDENTIALS
+```
+
+Save the result body in a file of your choice.  Let's call this file OKEX_CREDENTIALS.  Please realize that the /credentials endpoint is only a convenience provided by OKCatbox.  It is not present in the real OKEx API and the credentials produced will be useless there.

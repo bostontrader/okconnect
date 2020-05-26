@@ -28,3 +28,7 @@ curl -d "apikey=$APIKEY&account_id=$ACCT_EQUITY&category_id=$CAT_EQUITY" $BSERVE
 TXID1="$(curl -d "apikey=$APIKEY&notes=Initial Equity&time=2020-05-01T12:34:55.000Z" $BSERVER/transactions | jq .data.last_insert_id)"
 curl -d "&account_id=$ACCT_LCL_WALLET&apikey=$APIKEY&amount=2&amount_exp=0&transaction_id=$TXID1" $BSERVER/distributions
 curl -d "&account_id=$ACCT_EQUITY&apikey=$APIKEY&amount=-2&amount_exp=0&transaction_id=$TXID1" $BSERVER/distributions
+
+OKEXURL="http://185.183.96.73:8090"
+OKEX_CREDENTIALS="okcatbox.json"
+curl -X POST $OKEXURL/credentials --output $OKEX_CREDENTIALS
