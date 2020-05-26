@@ -79,15 +79,15 @@ Another wrinkle is that we have double quotes inside double quotes.  Oddly enoug
 
 F. Next, let's anticipate some accounts that we might need. We can do this manually using the Bookwerx UI by going to the Accounts tab.   Realize that each account has a description and a currency.  Two accounts can have the same description as long as they have different currencies.
 
-| Description   | Currency |
-|:--------------|----------|
-|Owner's Equity	|       BTC|
-|Local Wallet   |       BTC|
-|OKEx Funding	|       BTC|
-|Fee            |       BSV|
-|OKEx Spot	    |       BTC|
-|OKEx Spot-Hold | 	    BTC|
-|OKEx Spot	    |       BSV|
+|Description    |Currency  |
+|---------------|----------|
+|Owner's Equity	|BTC       | 
+|Local Wallet   |BTC       |
+|OKEx Funding	|BTC       |
+|Fee            |BSV       |
+|OKEx Spot	    |BTC       |
+|OKEx Spot-Hold |BTC       |
+|OKEx Spot	    |BSV       |
 
 As with the currencies you can see a parameter named "rarity" and it's still harmless and irrelevant for this tutorial so just ignore it.
 
@@ -103,15 +103,24 @@ ACCT_SPOT_HOLD="$(curl -d "apikey=$APIKEY&rarity=0&currency_id=$CURRENCY_BTC&tit
 ```
 G. Next, in order to produce balance sheet and income statement style reports, we'll need to define some useful categories that we can use to tag the accounts: We can do this manually using the Bookwerx UI by going to the Categories tab.
 
-Ex	Expenses
-Eq	Equity
-A	Assets
+|Symbol |Title       |
+|-------|------------|
+|A	    |Assets      | 
+|L      |Liabilities |
+|Eq	    |Equity      |
+|R      |Revenue     |
+|Ex	    |Expenses    |
+
+Please notice that we have defined categories for Liabilities and Revenue, even though we don't yet have any accounts of these types.  Oddly enough we'll need the categories soon, before we need specific accounts of those types.
+
 
 In order to save the IDs of the newly created categories:
 ```
+CAT_ASSETS="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Assets" $BSERVER/categories | jq .data.last_insert_id)"
+CAT_LIABILITIES="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Liabilities" $BSERVER/categories | jq .data.last_insert_id)"
 CAT_EQUITY="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Equity" $BSERVER/categories | jq .data.last_insert_id)"
-CAT_EXPENSE="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Expenses" $BSERVER/categories | jq .data.last_insert_id)"
-CAT_ASSET="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Assets" $BSERVER/categories | jq .data.last_insert_id)"
+CAT_REVENUE="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Revenue" $BSERVER/categories | jq .data.last_insert_id)"
+CAT_EXPENSES="$(curl -d "apikey=$APIKEY&symbol=Eq&title=Expenses" $BSERVER/categories | jq .data.last_insert_id)"
 ```
 
 H. Finally, let's tag the accounts with suitable categories. We can do this manually using the Bookwerx UI by going to the Categories tab and then click on the "Accounts" button for a particular category and then select the accounts that should be tagged with the given category.
@@ -127,6 +136,10 @@ H. Finally, let's tag the accounts with suitable categories. We can do this manu
 |Eq	       |Owner's Equity | BTC     |
 
 In this case, even though we still make http requests to do this, we don't care about saving any information from the responses.
+
+
+
+
 
 ```
 curl -d "apikey=$APIKEY&account_id=$ACCT_LCL_WALLET&category_id=$CAT_ASSET" $BSERVER/acctcats
@@ -156,3 +169,6 @@ curl -d "&account_id=$ACCT_EQUITY&apikey=$APIKEY&amount=-2&amount_exp=0&transact
 Notice that in the above commands, we save the transaction ID because we needed that to create the distributions.  But we didn't save the IDs for the distributions because we just don't care.
 
 Also note the method that Bookwerx uses to record numbers.  It uses a decimal floating-point system that enables it to _exactly_ record the numbers we see when dealing with crypto coins.
+
+J. If we produce a balance sheet as of a suitable time, such as now, it looks as expected.  Likewise, a PNL over any timespan, such as all of time, also looks as expected.
+
