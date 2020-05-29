@@ -13,6 +13,12 @@ OKConnect is the glue that binds the OKEx (or OKCatbox) API and Bookwerx togethe
 
 ## Getting Started
 
+```
+git clone https://github.com/bostontrader/okconnect
+cd okconnect
+go build
+```
+
 OKConnect is a command-line tool.  It takes a handful of runtime args, one of which is a command that specifies OKConnect's specific operation.
 
 For example,
@@ -168,7 +174,7 @@ Also note the method that Bookwerx uses to record numbers.  It uses a decimal fl
 
 J. If we produce a balance sheet as of a suitable time, such as now, it looks as expected.  Likewise, a PNL over any timespan, such as all of time, also looks as expected.
 
-2. Setup OKcatbox
+2. Setup OKCatbox
 
 As you have probably surmised, pretty soon we're going to need to use the OKEx API.  However, as mentioned earlier, we don't want to taunt the real API until we're fairly substantially ready to do so.  At this time we're not worthy.  So we'll use an OKCatbox instead.
 
@@ -179,8 +185,70 @@ OKEXURL="http://185.183.96.73:8090"
 A. As with the real API we'll need access credentials.  
 
 ```
-OKEX_CREDENTIALS=okcatbox.json
+OKEX_CREDENTIALS="okcatbox.json"
 curl -X POST $OKEXURL/credentials --output $OKEX_CREDENTIALS
 ```
 
 Save the result body in a file of your choice.  Let's call this file OKEX_CREDENTIALS.  Please realize that the /credentials endpoint is only a convenience provided by OKCatbox.  It is not present in the real OKEx API and the credentials produced will be useless there.
+ 
+3. Setup OKConnect
+
+Establish a YML config file in a location of your choice.  Perhaps call it okconnect.yaml  Configure it thus:
+
+bookwerxconfig:
+    apikey: $APIKEY
+    server: $BSERVER
+
+okexconfig
+    credentials: $OKEX_CREDENTIALS
+    server: $OKEXURL
+
+````
+echo "bookwerxconfig:" >> okconnect.yaml
+echo "  apikey: $APIKEY" >> okconnect.yaml
+echo "  server: $BSERVER" >> okconnect.yaml
+echo "okexconfig:" >> okconnect.yaml
+echo "  credentials: $OKEX_CREDENTIALS" >> okconnect.yaml
+echo "  server: $OKEXURL" >> okconnect.yaml
+````
+
+
+4. Hello compare
+
+One important task of OKConnect is to help us reconcile our Bookwerx and OKEx records.  Using the associated APIs for each we can extract the information we need, make suitable comparisons, and illustrate any differences.
+
+In order to do that we must have some method of mapping the accounts we have defined in Bookwerk with the corresponding accounts on OKEx.  One way to do that is to add the following top-level key to okconnect.yaml:
+
+compareconfig:
+    funding:
+      - currencyid: btc
+        available: $ACCT_FUNDING
+    spot
+      - currencyid: btc
+        available: $ACCT_SPOT_BTC
+      - currencyid: bsv
+        available: $ACCT_SPOT_BSV
+        hold: $ACCT_SPOT_HOLD
+
+```
+echo "compareconfig:" >> okconnect.yaml
+echo "  funding:" >> okconnect.yaml
+echo "    - currencyid: btc" >> okconnect.yaml
+echo "      available: $ACCT_FUNDING" >> okconnect.yaml
+echo "  spot:" >> okconnect.yaml
+echo "    - currencyid: btc" >> okconnect.yaml
+echo "      available: $ACCT_SPOT_BTC" >> okconnect.yaml
+echo "    - currencyid: bsv" >> okconnect.yaml
+echo "      hold: $ACCT_SPOT_BSV" >> okconnect.yaml
+echo "      available: $ACCT_SPOT_HOLD" >> okconnect.yaml
+```
+
+So now that everything is set up (hopefully properly) we can just ask okconnect to compare the balances!
+
+```
+./okconnect -cmd compare -config okconnect.yaml
+```
+
+Tada!  Look! No differences.  At this time Bookwerx and the OKCatbox should both agree that there are zero balances anywhere on the OKCatbox service.
+
+The output received from this command indicates that we have one currency, btc, defined in our configuration to connect the balance of the funding account in OKEx with the corresponding account on Bookwerx.  In this case we only have this single configuration entry, but we don't actually have any balances on OKEx or Bookwerx (so they're still both the same as expected.)  The {0, true} part of the balance means that said balance is _really_ a nil and the zero part is simply the initialized value of the balance.

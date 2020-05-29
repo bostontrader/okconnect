@@ -32,3 +32,23 @@ curl -d "&account_id=$ACCT_EQUITY&apikey=$APIKEY&amount=-2&amount_exp=0&transact
 OKEXURL="http://185.183.96.73:8090"
 OKEX_CREDENTIALS="okcatbox.json"
 curl -X POST $OKEXURL/credentials --output $OKEX_CREDENTIALS
+
+echo "bookwerxconfig:" >> okconnect.yaml
+echo "  apikey: $APIKEY" >> okconnect.yaml
+echo "  server: $BSERVER" >> okconnect.yaml
+echo "okexconfig:" >> okconnect.yaml
+echo "  credentials: $OKEX_CREDENTIALS" >> okconnect.yaml
+echo "  server: $OKEXURL" >> okconnect.yaml
+
+echo "compareconfig:" >> okconnect.yaml
+echo "  funding:" >> okconnect.yaml
+echo "    - currencyid: btc" >> okconnect.yaml
+echo "      available: $ACCT_FUNDING" >> okconnect.yaml
+echo "  spot:" >> okconnect.yaml
+echo "    - currencyid: btc" >> okconnect.yaml
+echo "      available: $ACCT_SPOT_BTC" >> okconnect.yaml
+echo "    - currencyid: bsv" >> okconnect.yaml
+echo "      hold: $ACCT_SPOT_BSV" >> okconnect.yaml
+echo "      available: $ACCT_SPOT_HOLD" >> okconnect.yaml
+
+./okconnect -cmd compare -config okconnect.yaml
