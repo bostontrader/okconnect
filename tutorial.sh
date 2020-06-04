@@ -51,4 +51,4 @@ echo "    - currencyid: bsv" >> okconnect.yaml
 echo "      hold: $ACCT_SPOT_BSV" >> okconnect.yaml
 echo "      available: $ACCT_SPOT_HOLD" >> okconnect.yaml
 
-./okconnect -cmd compare -config okconnect.yaml
+./okconnect compare -config okconnect.yaml
