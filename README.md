@@ -233,8 +233,6 @@ compareconfig:
 ```
 echo "compareconfig:" >> okconnect.yaml
 echo "  funding:" >> okconnect.yaml
-echo "    - currencyid: btc" >> okconnect.yaml
-echo "      available: $ACCT_FUNDING" >> okconnect.yaml
 echo "  spot:" >> okconnect.yaml
 echo "    - currencyid: btc" >> okconnect.yaml
 echo "      available: $ACCT_SPOT_BTC" >> okconnect.yaml
@@ -252,3 +250,37 @@ So now that everything is set up (hopefully properly) we can just ask okconnect 
 Tada!  Look! No differences.  At this time Bookwerx and the OKCatbox should both agree that there are zero balances anywhere on the OKCatbox service.
 
 The output received from this command indicates that we have one currency, btc, defined in our configuration to connect the balance of the funding account in OKEx with the corresponding account on Bookwerx.  In this case we only have this single configuration entry, but we don't actually have any balances on OKEx or Bookwerx (so they're still both the same as expected.)  The {0, true} part of the balance means that said balance is _really_ a nil and the zero part is simply the initialized value of the balance.
+
+5. Deposit Coin Into the Funding Account
+
+The next step is to transfer coin from wherever you have it stashed now into the OKEx funding account.  In this example we're using BTC so let's figure out how to transfer that now.
+
+TL;DR The bottom line in this section is that doing this is filled with details too tedious to even contemplate.  Therefore, in this tutorial we're going to take the easy road and just get 'er done.
+
+5.1 First, just assert a deposit to OKCatbox
+
+curl okcatbox deposit 1.5 BTC apikey=lllll
+
+This deposit endpoint is purely a convenience of the OKCatbox and does not exist in the real OKEx API. In this call we don't use the ordinary OKEx credential signing, and we only use the apikey as an identifier of your tutorial account.  This call merely asserts that the coin has been transferred and this is good enough for the OKCatbox.  There is no need to actually send any coin anywhere to do this tutorial.
+
+The real OKEx API doesn't have a method to assert a deposit.  You make a real deposit by obtaining a deposit address from the API and then by some method of beg, borrow, or steal, arranging to send coin to that address.  OKEx will eventually notice that this has happened at which time you'll be able to see the deposit in the deposit history and see the balance in your account.
+
+If we run compare now you'll notice that the balances don't match.  That should not be a big surprise because we've only changed the balance for the OKCatbox, we have not yet made any transaction in bookwerx.  You must do this manually.
+
+So:
+
+DR BTC Funding 1.5
+CR Local Wallet 1.5
+
+Run compare again and it should work.
+
+In actual usage, in order to make a deposit to your real OKEx account you'll need to send coins, make a suitable transaction in Bookwerx, and use okconnect -cmd compare, as separate tasks in order to get this done.  This is a tedious and ugly boundary between the pristine elgance of the world according to okconnect and the wild 'n' wooly rest of life.
+
+
+
+
+
+
+connect -cmd deposit -config okconnect.yaml
+
+

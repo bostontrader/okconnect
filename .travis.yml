@@ -7,7 +7,4 @@ script:
   - git clone https://github.com/bostontrader/okconnect
   - cd okconnect
   - go build
-  - ./okconnect
-  - ./okconnect -cmd help
-
   - ./tutorial.sh

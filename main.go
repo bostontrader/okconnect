@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
+
+	//"flag"
+	"fmt"
 	"os"
 )
 
@@ -41,50 +43,59 @@ type Config struct {
 	CompareConfig  CompareConfig
 }
 
-func main() {
+func printUsage() {
+	fmt.Println("Usage:")
+	fmt.Println("")
+	fmt.Println("    okconnect <command> [arguments]")
+	fmt.Println("")
+	fmt.Println("The commands are:")
+	fmt.Println("    compare")
+	fmt.Println("")
+	fmt.Println("Use \"okconnect <command>\" without any arguments to see more info about that command.")
+}
 
-	cmd := flag.String("cmd", "help", "An OKConnect command")
-	help := flag.Bool("help", false, "Display a help screen")
-	config := flag.String("config", "/path/to/config.yml", "The config file for OKConnect")
-
-	// Args[0] is the path to the program
-	// Args[1] is okconnect
-	// Args[2:] are any remaining args.
-	if len(os.Args) < 2 { // Invoke w/o any args
-		flag.Usage()
-	} else {
-
-		flag.Parse()
-		fmt.Println("OKConnect is using the following runtime args:")
-		fmt.Println("cmd:", *cmd)
-		fmt.Println("help:", *help)
-		fmt.Println("config:", *config)
-
-		// Try to read the config file.
-		data, err := ioutil.ReadFile(*config)
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-
-		t := Config{}
-
-		err = yaml.Unmarshal([]byte(data), &t)
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-
-		switch *cmd {
-		case "compare":
-			Compare(t)
-
-		case "help":
-			fmt.Println("Available commands:")
-			fmt.Println("help\tGuess what this command does?")
-			fmt.Println("compare\tCompare the balances between OKEx and Bookwerx")
-
-		default:
-			fmt.Println("Unknown command ", *cmd)
-		}
+func readConfigFile(filename *string) (cfg Config) {
+	data, err := ioutil.ReadFile(*filename)
+	if err != nil {
+		log.Fatalf("error: %v", err)
 	}
 
+	cfg = Config{}
+
+	err = yaml.Unmarshal([]byte(data), &cfg)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	return
+}
+
+func main() {
+
+	compareCmd := flag.NewFlagSet("compare", flag.ExitOnError)
+	compareConfig := compareCmd.String("config", "/path/to/config.yml", "The config file for OKConnect")
+
+	// Args[0] is okconnect
+	// Args[1] should be a subcommand
+	// Args[2:] are any remaining args.
+	if len(os.Args) <= 1 { // Invoked w/o any args
+		printUsage()
+	} else {
+		switch os.Args[1] { // this should be the subcommand
+		case "compare":
+			if len(os.Args) <= 2 { // Invoked with this command but w/o any other args
+				compareCmd.Usage()
+			} else {
+				compareCmd.Parse(os.Args[2:])
+
+				fmt.Printf("OKConnect is executing the %s command using the following runtime args:\n", os.Args[1])
+				fmt.Println("config:", *compareConfig)
+				Compare(readConfigFile(compareConfig))
+			}
+		default:
+			fmt.Printf("The command %s is not defined.\n", os.Args[1])
+			printUsage()
+		}
+
+	}
 }
