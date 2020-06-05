@@ -31,7 +31,7 @@ curl -d "&account_id=$ACCT_EQUITY&apikey=$APIKEY&amount=-2&amount_exp=0&transact
 
 OKEXURL="http://185.183.96.73:8090"
 OKEX_CREDENTIALS="okcatbox.json"
-curl -X POST $OKEXURL/credentials --output $OKEX_CREDENTIALS
+curl -X POST $OKEXURL/catbox/credentials --output $OKEX_CREDENTIALS
 
 echo "bookwerxconfig:" >> okconnect.yaml
 echo "  apikey: $APIKEY" >> okconnect.yaml

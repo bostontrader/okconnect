@@ -25,11 +25,7 @@ For example,
 ```
 ./okconnect
 ```
-or
-```
-./okconnect -cmd help
-```
-Would both produce usage information.
+Would produce usage information.
 
 In order for OKConnect to work it's going to need:
 
@@ -265,22 +261,16 @@ This deposit endpoint is purely a convenience of the OKCatbox and does not exist
 
 The real OKEx API doesn't have a method to assert a deposit.  You make a real deposit by obtaining a deposit address from the API and then by some method of beg, borrow, or steal, arranging to send coin to that address.  OKEx will eventually notice that this has happened at which time you'll be able to see the deposit in the deposit history and see the balance in your account.
 
-If we run compare now you'll notice that the balances don't match.  That should not be a big surprise because we've only changed the balance for the OKCatbox, we have not yet made any transaction in bookwerx.  You must do this manually.
+If we run compare now you'll notice that the balances don't match.  That should not be a big surprise because we've only changed the balance for the OKCatbox, we have not yet made any transaction in bookwerx.  Although it's tempting to make OKConnect do this for us, we really don't want to pollute OKConnect's command set with a fake deposit command.  So you must make this transaction in Booxwerx manually:
 
-So:
-
+2020-05-01T12:34:55.000Z
+Assert deposit of BTC into my funding account
 DR BTC Funding 1.5
 CR Local Wallet 1.5
 
-Run compare again and it should work.
+Run compare again and now it should work.
 
-In actual usage, in order to make a deposit to your real OKEx account you'll need to send coins, make a suitable transaction in Bookwerx, and use okconnect -cmd compare, as separate tasks in order to get this done.  This is a tedious and ugly boundary between the pristine elgance of the world according to okconnect and the wild 'n' wooly rest of life.
+In actual usage, in order to make a deposit to your real OKEx account you'll need to send coins, make a suitable transaction in Bookwerx, and use okconnect -cmd compare, as separate tasks in order to get this done.  This is a tedious and ugly boundary between the pristine elegance of the world according to OKConnect and the wild 'n' wooly rest of life.
 
-
-
-
-
-
-connect -cmd deposit -config okconnect.yaml
 
 
