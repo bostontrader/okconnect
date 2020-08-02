@@ -11,9 +11,13 @@ import (
 	"os"
 )
 
+// This is the configuration for a bookwerx core server and apikey for an ordinary user.
 type BookwerxConfig struct {
 	APIKey string
 	Server string
+
+	// Any user account that is a funding account shall be tagged with this category
+	FundingCat int32 `yaml:"funding_cat"`
 }
 
 // What account type.  Funding, Spot.
@@ -33,14 +37,14 @@ type OKExConfig struct {
 	Server      string
 }
 
-type CompareConfig struct {
-	Funding []Cur
-	Spot    []Cur
-}
+//type CompareConfig struct {
+//Funding []Cur
+//Spot    []Cur
+//}
 type Config struct {
 	BookwerxConfig BookwerxConfig
 	OKExConfig     OKExConfig
-	CompareConfig  CompareConfig
+	//CompareConfig  CompareConfig
 }
 
 func printUsage() {
@@ -58,6 +62,7 @@ func readConfigFile(filename *string) (cfg Config) {
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
 		log.Fatalf("error: %v", err)
+		return
 	}
 
 	cfg = Config{}
@@ -65,6 +70,7 @@ func readConfigFile(filename *string) (cfg Config) {
 	err = yaml.Unmarshal([]byte(data), &cfg)
 	if err != nil {
 		log.Fatalf("error: %v", err)
+		return
 	}
 
 	return
