@@ -2,12 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
-	"log"
-
-	//"flag"
-	"fmt"
 	"os"
 )
 
@@ -20,31 +17,14 @@ type BookwerxConfig struct {
 	FundingCat int32 `yaml:"funding_cat"`
 }
 
-// What account type.  Funding, Spot.
-type Category struct {
-	Category   string
-	Currencies []Cur
-}
-
-type Cur struct {
-	CurrencyID string
-	Hold       int
-	Available  int
-}
-
 type OKExConfig struct {
 	Credentials string
 	Server      string
 }
 
-//type CompareConfig struct {
-//Funding []Cur
-//Spot    []Cur
-//}
 type Config struct {
 	BookwerxConfig BookwerxConfig
 	OKExConfig     OKExConfig
-	//CompareConfig  CompareConfig
 }
 
 func printUsage() {
@@ -58,19 +38,19 @@ func printUsage() {
 	fmt.Println("Use \"okconnect <command>\" without any arguments to see more info about that command.")
 }
 
-func readConfigFile(filename *string) (cfg Config) {
+func readConfigFile(filename *string) (cfg *Config, err error) {
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		log.Fatalf("error: %v", err)
-		return
+		fmt.Println("ReadFile error: %v", err)
+		return nil, err
 	}
 
-	cfg = Config{}
+	cfg = &Config{}
 
-	err = yaml.Unmarshal([]byte(data), &cfg)
+	err = yaml.Unmarshal([]byte(data), cfg)
 	if err != nil {
-		log.Fatalf("error: %v", err)
-		return
+		fmt.Println("Cannot parse config file.")
+		return nil, err
 	}
 
 	return
@@ -94,9 +74,14 @@ func main() {
 			} else {
 				compareCmd.Parse(os.Args[2:])
 
-				fmt.Printf("OKConnect is executing the %s command using the following runtime args:\n", os.Args[1])
-				fmt.Println("config:", *compareConfig)
-				Compare(readConfigFile(compareConfig))
+				//fmt.Printf("OKConnect is executing the %s command using the following runtime args:\n", os.Args[1])
+				//fmt.Println("config:", *compareConfig)
+				cfg, err := readConfigFile(compareConfig)
+				if err != nil {
+					fmt.Println("Cannot read the config file.")
+					return
+				}
+				Compare(cfg)
 			}
 		default:
 			fmt.Printf("The command %s is not defined.\n", os.Args[1])

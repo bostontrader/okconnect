@@ -7,7 +7,6 @@ import (
 	"fmt"
 	utils "github.com/bostontrader/okcommon"
 	"github.com/shopspring/decimal"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -24,16 +23,18 @@ type MaybeBalance struct {
 	Nil     bool // Is the balance really supposed to be nil?
 }
 
-// 1.2. Define a Comparison struct that will enable us to assemble the bits 'n' pieces of information we find about these balances. Instances of this struct are expected to live in a collection that is indexed using a currency symbol so we don't need that in the struct.
+// 1.2. Define a Comparison struct that will enable us to assemble the bits 'n' pieces of information we find about these balances.
 type Comparison struct {
-	//BookwerxAccountID int
+	Category        string // Funding, Spot-Hold, etc.
 	OKExBalance     MaybeBalance
 	BookwerxBalance MaybeBalance
+	CurrencySymbol  string // OKEx uses a currency symbol as a currency id
+	AccountID       int32  // This is the account id for bookwerx
 }
 
 // 2. Define some structs for use in interfacing with Bookwerx
 type AccountCurrency struct {
-	AccountID int32
+	AccountID int32 `json:"account_id"`
 	Title     string
 	Currency  CurrencySymbol
 }
@@ -44,7 +45,7 @@ type BalanceResultDecorated struct {
 }
 
 type CurrencySymbol struct {
-	CurrencyID int32
+	CurrencyID int32 `json:"currency_id"`
 	Symbol     string
 }
 
@@ -72,19 +73,20 @@ func getHTTPClient(urlBase string) (client *http.Client) {
 
 }
 
-func readCredentialsFile(keyFile string) (utils.Credentials, error) {
+// Read the given credentials file for OKEx or the OKCatbox.
+func readCredentialsFile(keyFile string) (*utils.Credentials, error) {
 	var obj utils.Credentials
 	data, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		log.Fatalf("error: %v", err)
-		return utils.Credentials{}, err
+		fmt.Println("ReadFile error: %v", err)
+		return nil, err
 	}
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		log.Fatalf("error: %v", err)
-		return utils.Credentials{}, err
+		fmt.Println("Cannot parse the credentials file.")
+		return nil, err
 	}
-	return obj, nil
+	return &obj, nil
 }
 
 // Make the API call to get all funding balances from OKEx
@@ -93,14 +95,13 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 	endpoint := "/api/account/v3/wallet"
 	url := urlBase + endpoint
 	client := getHTTPClient(urlBase)
-	//credentials := readCredentialsFile(cfg.OKExConfig.Credentials)
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	prehash := timestamp + "GET" + endpoint
 	encoded, _ := utils.HmacSha256Base64Signer(prehash, credentials.SecretKey)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		fmt.Println("NewRequest error: %v", err)
 		return nil, err
 	}
 
@@ -110,21 +111,21 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 	req.Header.Add("OK-ACCESS-PASSPHRASE", credentials.Passphrase)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		fmt.Println("client.Do error: %v", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		fmt.Println("ReadAll error: %v", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Fatalf("Status Code error: expected= 200, received=", resp.StatusCode)
-		log.Fatalf("body=", string(body))
+		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
+		fmt.Println("body=", string(body))
 		return nil, errors.New("Status code error")
 	}
 
@@ -133,7 +134,7 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 	dec.DisallowUnknownFields()
 	err = dec.Decode(&walletEntries)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		fmt.Println("Wallet JSON decode error: %v", err)
 		return nil, err
 	}
 
@@ -141,18 +142,18 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 }
 
 // Make the API call to get all spot balances from OKEx.  This gives us both available and hold balances.
-func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, error) {
+func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.AccountsEntry, error) {
 	urlBase := cfg.OKExConfig.Server
-	endpoint := "/api/account/v3/wallet"
+	endpoint := "/api/spot/v3/accounts"
 	url := urlBase + endpoint
 	client := getHTTPClient(urlBase)
-	// credentials := readCredentialsFile(cfg.OKExConfig.Credentials)
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	prehash := timestamp + "GET" + endpoint
 	encoded, _ := utils.HmacSha256Base64Signer(prehash, credentials.SecretKey)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		fmt.Println("NewRequest error: %v", err)
 		return nil, err
 	}
 
@@ -162,31 +163,34 @@ func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry
 	req.Header.Add("OK-ACCESS-PASSPHRASE", credentials.Passphrase)
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println("client.Do error: %v", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println("ReadAll error: %v", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		log.Println("body=", string(body))
+		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
+		fmt.Println("body=", string(body))
 		return nil, errors.New("Status code error")
 	}
 
-	walletEntries := make([]utils.WalletEntry, 0)
+	accountsEntries := make([]utils.AccountsEntry, 0)
 	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.DisallowUnknownFields()
-	err = dec.Decode(&walletEntries)
+	err = dec.Decode(&accountsEntries)
 	if err != nil {
+		fmt.Println("Accounts JSON decode error: %v", err)
 		return nil, err
 	}
 
-	return walletEntries, nil
+	return accountsEntries, nil
 }
 
 // Get the current balances of all accounts tagged with a list of categories from Bookwerx.
@@ -196,54 +200,60 @@ func getCategoryDistSums(url string) ([]BalanceResultDecorated, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		fmt.Println("NewRequest error: %v", err)
 		return nil, err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println("client.Do error: %v", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println("ReadAll error: %v", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		log.Println("body=", string(body))
+		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
+		fmt.Println("body=", string(body))
 		return nil, errors.New("Status code error")
 	}
 
 	n := Sums{}
 	err = json.NewDecoder(bytes.NewReader(body)).Decode(&n)
 	if err != nil {
+		fmt.Println("getCategoryDistSums JSON decode error: %v", err)
 		return nil, err
 	}
 
 	return n.Sums, nil
 }
 
-func Compare(cfg Config) {
+func Compare(cfg *Config) {
 
 	// 1. Read the credentials file for OKEx
 	credentials, err := readCredentialsFile(cfg.OKExConfig.Credentials)
 	if err != nil {
+		fmt.Println("Cannot read the OKEx credentials file.")
 		return
 	}
 
 	// 2. Get the funding balances
 
 	// 2.1 ... from OKEx
-	walletEntries, err := getWallet(cfg, credentials)
+	walletEntries, err := getWallet(*cfg, *credentials)
 	if err != nil {
+		fmt.Println("Cannot execute the wallet API endpoint.")
 		return
 	}
 
 	// 2.1.1 Init the comparison chart for the funding section
-	comparisonEntries := make(map[string]Comparison)
+	comparisonEntriesFunding := make(map[string]Comparison)
 	for _, walletEntry := range walletEntries {
 
 		b, err := decimal.NewFromString(walletEntry.Balance)
@@ -252,8 +262,14 @@ func Compare(cfg Config) {
 			mb = MaybeBalance{decimal.NewFromInt(0), true}
 		}
 
-		comparison := Comparison{mb, MaybeBalance{decimal.NewFromInt(0), true}}
-		comparisonEntries[walletEntry.CurrencyID] = comparison // this is really the currency symbol
+		comparison := Comparison{
+			"F",
+			mb,
+			MaybeBalance{decimal.NewFromInt(0), true},
+			walletEntry.CurrencyID,
+			0,
+		}
+		comparisonEntriesFunding[walletEntry.CurrencyID] = comparison // this is really the currency symbol
 	}
 
 	// 2.2 ... from Bookwerx
@@ -263,41 +279,181 @@ func Compare(cfg Config) {
 
 	sums, err := getCategoryDistSums(url)
 	if err != nil {
+		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
 		return
 	}
 
-	// 2.2.1. Insert whatever balance info is found into the comparison chart for the funding section.
+	// 2.2.1. Insert whatever balance info is found into the comparison chart for the funding section.  Modify an existing record or create a new one if necessary.
 	for _, brd := range sums {
 
 		b1 := decimal.New(brd.Sum.Amount, int32(brd.Sum.Exp))
 
-		i, ok := comparisonEntries[brd.Account.Currency.Symbol]
+		i, ok := comparisonEntriesFunding[brd.Account.Currency.Symbol]
 		if ok {
 			// The entry is found, replace the BookwerxBalance
 			i.BookwerxBalance = MaybeBalance{b1, false}
-			comparisonEntries[brd.Account.Currency.Symbol] = i
+			i.AccountID = brd.Account.AccountID
+			comparisonEntriesFunding[brd.Account.Currency.Symbol] = i
 		} else {
 			// The entry is not found, build a new entry
-			comparisonEntries[brd.Account.Currency.Symbol] = Comparison{
-				OKExBalance:     MaybeBalance{decimal.NewFromInt(0), true},
-				BookwerxBalance: MaybeBalance{b1, false},
+			comparisonEntriesFunding[brd.Account.Currency.Symbol] = Comparison{
+				"F",
+				MaybeBalance{decimal.NewFromInt(0), true},
+				MaybeBalance{b1, false},
+				brd.Account.Currency.Symbol,
+				brd.Account.AccountID,
 			}
 		}
 	}
 
-	// 3. Print the final analysis.
-	errorCnt := 0
-	for k, v := range comparisonEntries {
+	// 3. Get the spot balances.  Be aware of available and hold balances.
 
+	// 3.1 ... from OKEx
+	accountsEntries, err := getAccounts(*cfg, *credentials)
+	if err != nil {
+		fmt.Println("Cannot execute the accounts API endpoint.")
+		return
+	}
+
+	// 3.1.1 Init the comparison chart for the spot, available section
+	comparisonEntriesSpotA := make(map[string]Comparison)
+	for _, accountsEntry := range accountsEntries {
+
+		b, err := decimal.NewFromString(accountsEntry.Balance)
+		mb := MaybeBalance{b, false}
+		if err != nil {
+			mb = MaybeBalance{decimal.NewFromInt(0), true}
+		}
+
+		comparison := Comparison{
+			"Spot-Available",
+			mb,
+			MaybeBalance{decimal.NewFromInt(0), true},
+			accountsEntry.CurrencyID, // okex uses a currency symbol as their currency id
+			0,
+		}
+		comparisonEntriesSpotA[accountsEntry.CurrencyID] = comparison // this is really the currency symbol
+	}
+
+	// 3.1.2 Init the comparison chart for the spot, hold section
+	comparisonEntriesSpotH := make(map[string]Comparison)
+	for _, accountsEntry := range accountsEntries {
+
+		b, err := decimal.NewFromString(accountsEntry.Balance)
+		mb := MaybeBalance{b, false}
+		if err != nil {
+			mb = MaybeBalance{decimal.NewFromInt(0), true}
+		}
+
+		comparison := Comparison{
+			"Spot-Hold",
+			mb,
+			MaybeBalance{decimal.NewFromInt(0), true},
+			accountsEntry.CurrencyID, // okex uses a currency symbol as their currency id
+			0,
+		}
+		comparisonEntriesSpotH[accountsEntry.CurrencyID] = comparison // this is really the currency symbol
+	}
+
+	// 3.2 ... from Bookwerx
+
+	// 3.2.1 ... for accounts tagged as spot_available_cat.
+
+	// 3.2.1.1 Get the account balances for all relevant accounts.
+	/*categories = fmt.Sprintf("%d", cfg.BookwerxConfig.FundingCat)
+	url = fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.Server, cfg.BookwerxConfig.APIKey, categories)
+
+	sums, err = getCategoryDistSums(url)
+	if err != nil {
+		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
+		return
+	} */
+
+	// 3.2.1.2 Insert whatever balance info is found into the comparison chart for the spot-available section.
+	/*for _, brd := range sums {
+
+			b1 := decimal.New(brd.Sum.Amount, int32(brd.Sum.Exp))
+
+			i, ok := comparisonEntriesFunding[brd.Account.Currency.Symbol]
+			if ok {
+				// The entry is found, replace the BookwerxBalance
+				i.BookwerxBalance = MaybeBalance{b1, false}
+				i.AccountID = brd.Account.AccountID
+				comparisonEntriesSpotH[brd.Account.Currency.Symbol] = i
+			} else {
+				// The entry is not found, build a new entry
+				comparisonEntriesSpotH[brd.Account.Currency.Symbol] = Comparison{
+					"Spot-Available",
+	        		MaybeBalance{decimal.NewFromInt(0), true},
+					MaybeBalance{b1, false},
+					brd.Account.Currency.Symbol,
+					brd.Account.AccountID,
+				}
+			}
+		} */
+
+	// 3.2.2 ... for accounts tagged as spot_hold_cat.
+
+	// 3.2.2.1 Get the account balances for all relevant accounts.
+	/*categories = fmt.Sprintf("%d", cfg.BookwerxConfig.FundingCat)
+	url = fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.Server, cfg.BookwerxConfig.APIKey, categories)
+
+	sums, err = getCategoryDistSums(url)
+	if err != nil {
+		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
+		return
+	}
+
+	// 3.2.2.2 Insert whatever balance info is found into the comparison chart for the funding section.
+	for _, brd := range sums {
+
+		b1 := decimal.New(brd.Sum.Amount, int32(brd.Sum.Exp))
+
+		i, ok := comparisonEntriesSpotH[brd.Account.Currency.Symbol]
+		if ok {
+			// The entry is found, replace the BookwerxBalance
+			i.BookwerxBalance = MaybeBalance{b1, false}
+			comparisonEntriesSpotH[brd.Account.Currency.Symbol] = i
+		} else {
+			// The entry is not found, build a new entry
+			comparisonEntriesSpotH[brd.Account.Currency.Symbol] = Comparison{
+				OKExBalance:     MaybeBalance{decimal.NewFromInt(0), true},
+				BookwerxBalance: MaybeBalance{b1, false},
+			}
+		}
+	} */
+
+	// 4. Build the return value
+	retValA := make([]Comparison, 0)
+
+	// 4.1 Funding
+	for _, v := range comparisonEntriesFunding {
 		b1, b2 := decimal.RescalePair(v.BookwerxBalance.Balance, v.OKExBalance.Balance)
 		if !b1.Equal(b2) {
-			log.Printf("%s OKEx=%v Bookwerx=%v", k, v.OKExBalance, v.BookwerxBalance)
+			retValA = append(retValA, v)
 		}
 	}
 
-	if errorCnt == 0 {
-		log.Println("All relevant balances agree with each other.")
-	} else {
-		log.Println("There is at lease one balance error.")
+	// 4.2 Spot
+
+	// 4.2.1 Spot Available
+	for _, v := range comparisonEntriesSpotA {
+		b1, b2 := decimal.RescalePair(v.BookwerxBalance.Balance, v.OKExBalance.Balance)
+		if !b1.Equal(b2) {
+			retValA = append(retValA, v)
+		}
 	}
+
+	// 4.2.2 Spot Hold
+	for _, v := range comparisonEntriesSpotH {
+		b1, b2 := decimal.RescalePair(v.BookwerxBalance.Balance, v.OKExBalance.Balance)
+		if !b1.Equal(b2) {
+			retValA = append(retValA, v)
+		}
+	}
+
+	retValB, _ := json.Marshal(retValA)
+
+	fmt.Println(string(retValB))
+
 }
