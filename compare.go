@@ -78,12 +78,12 @@ func readCredentialsFile(keyFile string) (*utils.Credentials, error) {
 	var obj utils.Credentials
 	data, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		fmt.Println("ReadFile error: %v", err)
+		fmt.Println("compare.go:readCredentials: ", err)
 		return nil, err
 	}
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		fmt.Println("Cannot parse the credentials file.")
+		fmt.Println("compare.go:readCredentials: Cannot parse the credentials file.")
 		return nil, err
 	}
 	return &obj, nil
