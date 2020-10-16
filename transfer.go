@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	//"errors"
 	"fmt"
+	bw_api "github.com/bostontrader/bookwerx-common-go"
 	utils "github.com/bostontrader/okcommon"
-	//"github.com/go-errors/errors"
 	"github.com/gojektech/heimdall/httpclient"
+	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 	"io/ioutil"
 	"net/http"
@@ -65,6 +65,8 @@ func fixDot(b []byte) {
 // remember to use okconnect compare.
 
 func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, transferTo *string, transferQuan *string) {
+
+	methodName := "okconnect:transfer.go:Transfer"
 
 	// 1. First make the API call to OKEx
 
@@ -171,9 +173,9 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	query := fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
 	url := fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
 
-	body, err := get(clientB, url)
+	body, err := bw_api.Get(clientB, url)
 	if err != nil {
-		fmt.Println("transfer.go: get error: %v", err)
+		fmt.Println("%s :Error reading %s\n%v", methodName, url, err)
 		return
 	}
 	fixDot(body)
@@ -209,8 +211,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	query = fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
 	url = fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
 
-	//client = getHTTPClient(url)
-	body, err = get(clientB, url)
+	body, err = bw_api.Get(clientB, url)
 	if err != nil {
 		fmt.Println("transfer.go: get error: %v", err)
 		return

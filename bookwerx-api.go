@@ -102,36 +102,3 @@ func createTransaction(client *httpclient.Client, time string, cfg Config) (txid
 
 	return txid, nil
 }
-
-// Generic get on the API
-func get(client *httpclient.Client, url string) ([]byte, error) {
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		fmt.Println("bookwerx-api get NewRequest error: %v", err)
-		return nil, err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("bookwerx-api get client.Do error: %v", err)
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("bookwerx-api get ReadAll error: %v", err)
-		return nil, err
-	}
-	fmt.Println(string(body))
-	_ = resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		fmt.Println("body=", string(body))
-		return nil, err
-	}
-
-	return body, nil
-
-}
