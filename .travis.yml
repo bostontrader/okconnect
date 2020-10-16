@@ -5,4 +5,5 @@ go:
 
 script:
   # -L follow redirects
-  - curl -L https://github.com/bostontrader/oktest/raw/master/test-script.sh | bash
+  # - curl -L https://github.com/bostontrader/oktest/blob/master/test-script.sh | bash
+  - source $(curl -L https://github.com/bostontrader/oktest/blob/master/test-script.sh)
