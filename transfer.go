@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	//"errors"
 	"fmt"
-	bw_api "github.com/bostontrader/bookwerx-common-go"
+	bwapi "github.com/bostontrader/bookwerx-common-go"
 	utils "github.com/bostontrader/okcommon"
+	"github.com/bostontrader/okconnect/config"
+	okchttp "github.com/bostontrader/okconnect/http"
 	"github.com/gojektech/heimdall/httpclient"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -64,26 +65,25 @@ func fixDot(b []byte) {
 // 4. In the event of some error that leaves OKEx and bookwerx in a disagreeable state,
 // remember to use okconnect compare.
 
-func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, transferTo *string, transferQuan *string) {
+func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string, transferTo *string, transferQuan *string) {
 
 	methodName := "okconnect:transfer.go:Transfer"
 
 	// 1. First make the API call to OKEx
 
 	// 1.1 Read the credentials file for OKEx
-	credentials, err := readCredentialsFile(cfg.OKExConfig.Credentials)
+	credentials, err := config.ReadCredentialsFile(cfg.OKExConfig.Credentials)
 	if err != nil {
-		fmt.Println("transfer.go:Transfer: Cannot read the OKEx credentials file.")
+		fmt.Printf("transfer.go:Transfer: Cannot read the OKEx credentials file.\n")
 		return
 	}
 
 	// 1.2 Make the Call!
-	resp, err := accountTransfer(*cfg, *credentials)
+	_, err = accountTransfer(*cfg, *credentials)
 	if err != nil {
-		fmt.Println("transfer.go:Transfer OKEx API call failed.")
+		fmt.Printf("transfer.go:Transfer OKEx API call failed.\n")
 		return
 	}
-	fmt.Println(resp)
 
 	// 2. Validate the source and destination code and determine the relevant bookwerx categories to use.
 	var catSource int32
@@ -91,7 +91,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 
 	// 2.1 They should not be the same.
 	if *transferFrom == *transferTo {
-		fmt.Println("transfer.go: The source and destination of this transfer are the same. No can do.")
+		fmt.Printf("transfer.go: The source and destination of this transfer are the same. No can do.\n")
 		return
 	}
 
@@ -101,7 +101,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	} else if *transferFrom == "6" {
 		catSource = cfg.BookwerxConfig.FundingCat
 	} else {
-		fmt.Println("transfer.go: The transferFrom parameter %s must be 1 or 6", transferFrom)
+		fmt.Printf("transfer.go: The transferFrom parameter %d must be 1 or 6\n", transferFrom)
 		return
 	}
 
@@ -111,14 +111,14 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	} else if *transferTo == "6" {
 		catDest = cfg.BookwerxConfig.FundingCat
 	} else {
-		fmt.Println("transfer.go: The transferTo parameter %s must be 1 or 6", transferTo)
+		fmt.Printf("transfer.go: The transferTo parameter %d must be 1 or 6\n", transferTo)
 		return
 	}
 
 	// 3. Parse the quantity
 	quan, err := decimal.NewFromString(*transferQuan)
 	if err != nil {
-		fmt.Println("transfer.go: Cannot parse the quantity.")
+		fmt.Printf("transfer.go: Cannot parse the quantity.\n")
 		return
 	}
 	quanCoff := quan.Coefficient().Int64()
@@ -141,7 +141,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 
 	body, err := get(clientB, url)
 	if err != nil {
-		fmt.Println("transfer.go: get request error: %v", err)
+		fmt.Printf("transfer.go: get request error: %v", err)
 		return
 	}
 	fixDot(body)
@@ -149,15 +149,15 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	n := make([]CId, 0)
 	err = json.NewDecoder(bytes.NewReader(body)).Decode(&n)
 	if err != nil {
-		fmt.Println("transfer.go: JSON decode error: %v", err)
+		fmt.Printf("transfer.go: JSON decode error: %v", err)
 		return;
 	}
 
 	if len(n) == 0 {
-		fmt.Println("transfer.go: Currency %s is not defined in bookwerx", "BTC")
+		fmt.Printf("transfer.go: Currency %s is not defined in bookwerx", "BTC")
 		return
 	} else if len(n) > 1 {
-		fmt.Println("transfer.go: There are more than one suitable currencies.  This should never happen.")
+		fmt.Printf("transfer.go: There are more than one suitable currencies.  This should never happen.")
 		return
 	}*/
 
@@ -173,9 +173,9 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	query := fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
 	url := fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
 
-	body, err := bw_api.Get(clientB, url)
+	body, err := bwapi.Get(clientB, url)
 	if err != nil {
-		fmt.Println("%s :Error reading %s\n%v", methodName, url, err)
+		fmt.Printf("%s :Error reading %s\n%v", methodName, url, err)
 		return
 	}
 	fixDot(body)
@@ -183,15 +183,15 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	n1 := make([]AId, 0)
 	err = json.NewDecoder(bytes.NewReader(body)).Decode(&n1)
 	if err != nil {
-		fmt.Println("transfer.go: JSON decode error: %v", err)
+		fmt.Printf("transfer.go: JSON decode error: %v\n", err)
 		return
 	}
 
 	if len(n1) == 0 {
-		fmt.Println("transfer.go: Bookwerx does not have any account properly configured.")
+		fmt.Printf("transfer.go: Bookwerx does not have any account properly configured.\n")
 		return
 	} else if len(n1) > 1 {
-		fmt.Println("transfer.go: Bookwerx has more than one suitable account.  This should never happen.")
+		fmt.Printf("transfer.go: Bookwerx has more than one suitable account.  This should never happen.\n")
 	}
 
 	sourceAcctID := n1[0]
@@ -211,9 +211,9 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	query = fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
 	url = fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
 
-	body, err = bw_api.Get(clientB, url)
+	body, err = bwapi.Get(clientB, url)
 	if err != nil {
-		fmt.Println("transfer.go: get error: %v", err)
+		fmt.Printf("transfer.go: get error: %v\n", err)
 		return
 	}
 
@@ -221,22 +221,21 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	for i, num := range body {
 		if num == 46 {
 			body[i] = 45
-			fmt.Println("index:", i)
 		}
 	}
 
 	n1 = make([]AId, 0)
 	err = json.NewDecoder(bytes.NewReader(body)).Decode(&n1)
 	if err != nil {
-		fmt.Println("transfer.go: JSON decode error: %v", err)
+		fmt.Printf("transfer.go: JSON decode error: %v\n", err)
 		return
 	}
 
 	if len(n1) == 0 {
-		fmt.Println("transfer.go: Bookwerx does not have any account properly configured.")
+		fmt.Printf("transfer.go: Bookwerx does not have any account properly configured.\n")
 		return
 	} else if len(n1) > 1 {
-		fmt.Println("transfer.go: Bookwerx has more than one suitable account.  This should never happen.")
+		fmt.Printf("transfer.go: Bookwerx has more than one suitable account.  This should never happen.\n")
 	}
 
 	destAcctID := n1[0]
@@ -267,7 +266,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	if err != nil {
 		//log.Error(err)
 		//fmt.Fprintf(w, err.Error())
-		fmt.Println("transfer.go: Error creating bookwerx transaction.")
+		fmt.Printf("transfer.go: Error creating bookwerx transaction.\n")
 		return
 	}
 
@@ -276,7 +275,7 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	if err != nil {
 		//log.Error(err)
 		//fmt.Fprintf(w, err.Error())
-		fmt.Println("transfer.go: Error creating bookwerx distribution.")
+		fmt.Printf("transfer.go: Error creating bookwerx distribution.\n")
 		return
 	}
 
@@ -285,20 +284,20 @@ func Transfer(cfg *Config, transferCurrency *string, transferFrom *string, trans
 	if err != nil {
 		//log.Error(err)
 		//fmt.Fprintf(w, err.Error())
-		fmt.Println("transfer.go: Error creating bookwerx distribution.")
+		fmt.Printf("transfer.go: Error creating bookwerx distribution.\n")
 		return
 	}
-	fmt.Println(catSource, catDest, quanCoff, sourceAcctID, destAcctID)
+	//fmt.Printf(catSource, catDest, quanCoff, sourceAcctID, destAcctID)
 	return
 
 }
 
 // Make the API call to perform the transfer on okex
-func accountTransfer(cfg Config, credentials utils.Credentials) (AccountTransferResult, error) {
+func accountTransfer(cfg config.Config, credentials utils.Credentials) (AccountTransferResult, error) {
 	urlBase := cfg.OKExConfig.Server
 	endpoint := "/api/account/v3/transfer"
 	url := urlBase + endpoint
-	client := getHTTPClient(urlBase)
+	client := okchttp.GetHTTPClient(urlBase)
 	reqBody := `{"from":"6", "to":"1", "amount":"0.1", "currency":"BTC"}`
 
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
@@ -307,7 +306,7 @@ func accountTransfer(cfg Config, credentials utils.Credentials) (AccountTransfer
 
 	req, err := http.NewRequest("POST", url, strings.NewReader(reqBody))
 	if err != nil {
-		fmt.Println("transfer.go:accountTransfer: NewRequest error:", err)
+		fmt.Printf("transfer.go:accountTransfer: NewRequest error:%v\n", err)
 		return AccountTransferResult{}, err
 	}
 
@@ -318,25 +317,25 @@ func accountTransfer(cfg Config, credentials utils.Credentials) (AccountTransfer
 	req.Header.Add("OK-ACCESS-PASSPHRASE", credentials.Passphrase)
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("transfer.go:accountTransfer: client.Do error:", err)
+		fmt.Printf("transfer.go:accountTransfer: client.Do error:%v\n", err)
 		return AccountTransferResult{}, err
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("transfer.go:accountTransfer: ReadAll error:", err)
+		fmt.Printf("transfer.go:accountTransfer: ReadAll error:%v\n", err)
 		return AccountTransferResult{}, err
 	}
 
-	_ = resp.Body.Close()
+	err = resp.Body.Close()
 	if err != nil {
-		fmt.Println("transfer.go:accountTransfer: Body.Close error:", err)
+		fmt.Printf("transfer.go:accountTransfer: Body.Close error:%v\n", err)
 		return AccountTransferResult{}, err
 	}
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		fmt.Println("body=", string(respBody))
+		fmt.Printf("Status Code error: expected= 200, received=%d\n", resp.StatusCode)
+		fmt.Printf("body=%s\n", string(respBody))
 		return AccountTransferResult{}, errors.New("transfer.go:accountTransfer: status code error")
 	}
 
@@ -344,8 +343,8 @@ func accountTransfer(cfg Config, credentials utils.Credentials) (AccountTransfer
 	dec := json.NewDecoder(bytes.NewReader(respBody))
 	err = dec.Decode(&accountTransferResult)
 	if err != nil {
-		fmt.Println(string(respBody))
-		fmt.Println("transfer.go:accountTransfer: Wallet JSON decode error", err)
+		fmt.Printf("transfer.go:accountTransfer: Wallet JSON decode error: %v\n", err)
+		fmt.Printf("body=%s\n", string(respBody))
 		return AccountTransferResult{}, err
 	}
 

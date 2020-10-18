@@ -1,4 +1,4 @@
-package main
+package compare
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	utils "github.com/bostontrader/okcommon"
+	"github.com/bostontrader/okconnect/config"
+	okchttp "github.com/bostontrader/okconnect/http"
 	"github.com/shopspring/decimal"
 	"io/ioutil"
 	"net/http"
@@ -58,50 +60,19 @@ type Sums struct {
 	Sums []BalanceResultDecorated
 }
 
-func getHTTPClient(urlBase string) (client *http.Client) {
-
-	if len(urlBase) >= 6 && urlBase[:6] == "https:" {
-		tr := &http.Transport{
-			MaxIdleConns:       10,
-			IdleConnTimeout:    30 * time.Second,
-			DisableCompression: true,
-		}
-		return &http.Client{Transport: tr}
-	}
-
-	return &http.Client{}
-
-}
-
-// Read the given credentials file for OKEx or the OKCatbox.
-func readCredentialsFile(keyFile string) (*utils.Credentials, error) {
-	var obj utils.Credentials
-	data, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		fmt.Println("compare.go:readCredentials: ", err)
-		return nil, err
-	}
-	err = json.Unmarshal(data, &obj)
-	if err != nil {
-		fmt.Println("compare.go:readCredentials: Cannot parse the credentials file.")
-		return nil, err
-	}
-	return &obj, nil
-}
-
 // Make the API call to get all funding balances from OKEx
-func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, error) {
+func getWallet(cfg config.Config, credentials utils.Credentials) ([]utils.WalletEntry, error) {
 	urlBase := cfg.OKExConfig.Server
 	endpoint := "/api/account/v3/wallet"
 	url := urlBase + endpoint
-	client := getHTTPClient(urlBase)
+	client := okchttp.GetHTTPClient(urlBase)
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	prehash := timestamp + "GET" + endpoint
 	encoded, _ := utils.HmacSha256Base64Signer(prehash, credentials.SecretKey)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("NewRequest error: %v", err)
+		fmt.Printf("NewRequest error: %v\n", err)
 		return nil, err
 	}
 
@@ -111,22 +82,22 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 	req.Header.Add("OK-ACCESS-PASSPHRASE", credentials.Passphrase)
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("client.Do error: %v", err)
+		fmt.Printf("client.Do error: %v\n", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ReadAll error: %v", err)
+		fmt.Printf("ReadAll error: %v\n", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		fmt.Println("body=", string(body))
-		return nil, errors.New("Status code error")
+		fmt.Printf("Status Code error: expected= 200, received=%d\n", resp.StatusCode)
+		fmt.Printf("body=%s\n", string(body))
+		return nil, errors.New("status code error")
 	}
 
 	walletEntries := make([]utils.WalletEntry, 0)
@@ -134,7 +105,7 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 	dec.DisallowUnknownFields()
 	err = dec.Decode(&walletEntries)
 	if err != nil {
-		fmt.Println("Wallet JSON decode error: %v", err)
+		fmt.Printf("Wallet JSON decode error: %v\n", err)
 		return nil, err
 	}
 
@@ -142,18 +113,18 @@ func getWallet(cfg Config, credentials utils.Credentials) ([]utils.WalletEntry, 
 }
 
 // Make the API call to get all spot balances from OKEx.  This gives us both available and hold balances.
-func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.AccountsEntry, error) {
+func getAccounts(cfg config.Config, credentials utils.Credentials) ([]utils.AccountsEntry, error) {
 	urlBase := cfg.OKExConfig.Server
 	endpoint := "/api/spot/v3/accounts"
 	url := urlBase + endpoint
-	client := getHTTPClient(urlBase)
+	client := okchttp.GetHTTPClient(urlBase)
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 	prehash := timestamp + "GET" + endpoint
 	encoded, _ := utils.HmacSha256Base64Signer(prehash, credentials.SecretKey)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("NewRequest error: %v", err)
+		fmt.Printf("NewRequest error: %v\n", err)
 		return nil, err
 	}
 
@@ -163,22 +134,22 @@ func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.AccountsEnt
 	req.Header.Add("OK-ACCESS-PASSPHRASE", credentials.Passphrase)
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("client.Do error: %v", err)
+		fmt.Printf("client.Do error: %v\n", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ReadAll error: %v", err)
+		fmt.Printf("ReadAll error: %v\n", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		fmt.Println("body=", string(body))
-		return nil, errors.New("Status code error")
+		fmt.Printf("Status Code error: expected= 200, received=%d\n", resp.StatusCode)
+		fmt.Printf("body=%s\n", string(body))
+		return nil, errors.New("status code error")
 	}
 
 	accountsEntries := make([]utils.AccountsEntry, 0)
@@ -186,7 +157,7 @@ func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.AccountsEnt
 	dec.DisallowUnknownFields()
 	err = dec.Decode(&accountsEntries)
 	if err != nil {
-		fmt.Println("Accounts JSON decode error: %v", err)
+		fmt.Printf("Accounts JSON decode error: %v\n", err)
 		return nil, err
 	}
 
@@ -196,50 +167,50 @@ func getAccounts(cfg Config, credentials utils.Credentials) ([]utils.AccountsEnt
 // Get the current balances of all accounts tagged with a list of categories from Bookwerx.
 func getCategoryDistSums(url string) ([]BalanceResultDecorated, error) {
 
-	client := getHTTPClient(url)
+	client := okchttp.GetHTTPClient(url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("NewRequest error: %v", err)
+		fmt.Printf("NewRequest error: %v\n", err)
 		return nil, err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("client.Do error: %v", err)
+		fmt.Printf("client.Do error: %v\n", err)
 		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ReadAll error: %v", err)
+		fmt.Printf("ReadAll error: %v\n", err)
 		return nil, err
 	}
 
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		fmt.Println("Status Code error: expected= 200, received=", resp.StatusCode)
-		fmt.Println("body=", string(body))
-		return nil, errors.New("Status code error")
+		fmt.Printf("Status Code error: expected= 200, received=%d\n", resp.StatusCode)
+		fmt.Printf("body=%s\n", string(body))
+		return nil, errors.New("status code error")
 	}
 
 	n := Sums{}
 	err = json.NewDecoder(bytes.NewReader(body)).Decode(&n)
 	if err != nil {
-		fmt.Println("getCategoryDistSums JSON decode error: %v", err)
+		fmt.Printf("getCategoryDistSums JSON decode error: %v\n", err)
 		return nil, err
 	}
 
 	return n.Sums, nil
 }
 
-func Compare(cfg *Config) {
+func Compare(cfg *config.Config) {
 
 	// 1. Read the credentials file for OKEx
-	credentials, err := readCredentialsFile(cfg.OKExConfig.Credentials)
+	credentials, err := config.ReadCredentialsFile(cfg.OKExConfig.Credentials)
 	if err != nil {
-		fmt.Println("Cannot read the OKEx credentials file.")
+		fmt.Printf("Cannot read the OKEx credentials file.\n")
 		return
 	}
 
@@ -248,7 +219,7 @@ func Compare(cfg *Config) {
 	// 2.1 ... from OKEx
 	walletEntries, err := getWallet(*cfg, *credentials)
 	if err != nil {
-		fmt.Println("Cannot execute the wallet API endpoint.")
+		fmt.Printf("Cannot execute the wallet API endpoint.\n")
 		return
 	}
 
@@ -279,7 +250,7 @@ func Compare(cfg *Config) {
 
 	sums, err := getCategoryDistSums(url)
 	if err != nil {
-		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
+		fmt.Printf("Cannot execute the getCategoryDistSums API endpoint.\n")
 		return
 	}
 
@@ -311,7 +282,7 @@ func Compare(cfg *Config) {
 	// 3.1 ... from OKEx
 	accountsEntries, err := getAccounts(*cfg, *credentials)
 	if err != nil {
-		fmt.Println("Cannot execute the accounts API endpoint.")
+		fmt.Printf("Cannot execute the accounts API endpoint.\n")
 		return
 	}
 
@@ -365,7 +336,7 @@ func Compare(cfg *Config) {
 
 	sums, err = getCategoryDistSums(url)
 	if err != nil {
-		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
+		fmt.Printf("Cannot execute the getCategoryDistSums API endpoint.")
 		return
 	} */
 
@@ -400,7 +371,7 @@ func Compare(cfg *Config) {
 
 	sums, err = getCategoryDistSums(url)
 	if err != nil {
-		fmt.Println("Cannot execute the getCategoryDistSums API endpoint.")
+		fmt.Printf("Cannot execute the getCategoryDistSums API endpoint.")
 		return
 	}
 
@@ -454,6 +425,6 @@ func Compare(cfg *Config) {
 
 	retValB, _ := json.Marshal(retValA)
 
-	fmt.Println(string(retValB))
+	fmt.Printf(string(retValB))
 
 }

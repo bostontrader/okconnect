@@ -7,14 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bostontrader/okconnect/config"
 	"github.com/gojektech/heimdall/httpclient"
 	"io/ioutil"
 	"net/http"
 )
-
-type CId struct {
-	Id int32 `json:"currencies-id"`
-}
 
 type AId struct {
 	Id int32 `json:"accounts-id"`
@@ -25,7 +22,7 @@ type LID struct {
 }
 
 // Given a response object, read the body and return it as a string.  Deal with the error message if necessary.
-func body_string(resp *http.Response) string {
+func bodyString(resp *http.Response) string {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Sprintf("bookwerx-api.go body_string :%v", err)
@@ -33,25 +30,25 @@ func body_string(resp *http.Response) string {
 	return string(body)
 }
 
-func createDistribution(client *httpclient.Client, account_id int32, amt int64, exp int32, txid int32, cfg Config) (did int32, err error) {
+func createDistribution(client *httpclient.Client, accountId int32, amt int64, exp int32, txid int32, cfg config.Config) (did int32, err error) {
 
 	url1 := fmt.Sprintf("%s/distributions", cfg.BookwerxConfig.Server)
 	url2 := fmt.Sprintf("apikey=%s&account_id=%d&amount=%d&amount_exp=%d&transaction_id=%d",
-		cfg.BookwerxConfig.APIKey, account_id, amt, exp, txid)
+		cfg.BookwerxConfig.APIKey, accountId, amt, exp, txid)
 
 	h := make(map[string][]string)
 	h["Content-Type"] = []string{"application/x-www-form-urlencoded"}
 
 	resp, err := client.Post(url1, bytes.NewBuffer([]byte(url2)), h)
-	defer resp.Body.Close()
 	if err != nil {
 		s := fmt.Sprintf("bookwerx-api.go createDistribution 1: %v", err)
 		fmt.Println(s)
 		return -1, errors.New(s)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		s := fmt.Sprintf("bookwerx-api.go createDistribution 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, body_string(resp))
+		s := fmt.Sprintf("bookwerx-api.go createDistribution 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, bodyString(resp))
 		fmt.Println(s)
 		return -1, errors.New(s)
 	}
@@ -68,7 +65,7 @@ func createDistribution(client *httpclient.Client, account_id int32, amt int64, 
 	return insert.LastInsertID, nil
 }
 
-func createTransaction(client *httpclient.Client, time string, cfg Config) (txid int32, err error) {
+func createTransaction(client *httpclient.Client, time string, cfg config.Config) (txid int32, err error) {
 
 	url1 := fmt.Sprintf("%s/transactions", cfg.BookwerxConfig.Server)
 	url2 := fmt.Sprintf("apikey=%s&notes=deposit&time=%s", cfg.BookwerxConfig.APIKey, time)
@@ -85,7 +82,7 @@ func createTransaction(client *httpclient.Client, time string, cfg Config) (txid
 	}
 
 	if resp.StatusCode != 200 {
-		s := fmt.Sprintf("bookwerx-api.go createTransaction 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, body_string(resp))
+		s := fmt.Sprintf("bookwerx-api.go createTransaction 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, bodyString(resp))
 		fmt.Println(s)
 		return -1, errors.New(s)
 	}

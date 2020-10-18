@@ -3,36 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/bostontrader/okconnect/compare"
+	"github.com/bostontrader/okconnect/config"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 )
-
-// This is the configuration for a bookwerx core server and apikey for an ordinary user.
-type BookwerxConfig struct {
-	APIKey string
-	Server string
-
-	// Any user account that is a...
-	// ... funding account shall be tagged with this category
-	FundingCat int32 `yaml:"funding_cat"`
-
-	// ... spot available account shall be tagged with this category
-	SpotAvailableCat int32 `yaml:"spot_available_cat"`
-
-	// ... spot hold account shall be tagged with this category
-	SpotHoldCat int32 `yaml:"spot_hold_cat"`
-}
-
-type OKExConfig struct {
-	Credentials string
-	Server      string
-}
-
-type Config struct {
-	BookwerxConfig BookwerxConfig
-	OKExConfig     OKExConfig
-}
 
 func printUsage() {
 	fmt.Println("Usage:")
@@ -45,18 +21,18 @@ func printUsage() {
 	fmt.Println("Use \"okconnect <command>\" without any arguments to see more info about that command.")
 }
 
-func readConfigFile(filename *string) (cfg *Config, err error) {
+func readConfigFile(filename *string) (cfg *config.Config, err error) {
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		fmt.Println("ReadFile error: %v", err)
+		fmt.Printf("ReadFile error: %v\n", err)
 		return nil, err
 	}
 
-	cfg = &Config{}
+	cfg = &config.Config{}
 
-	err = yaml.Unmarshal([]byte(data), cfg)
+	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
-		fmt.Println("Cannot parse config file.")
+		fmt.Printf("Cannot parse config file.\n")
 		return nil, err
 	}
 
@@ -88,25 +64,33 @@ func main() {
 			if len(os.Args) <= 2 { // Invoked with this command but w/o any other args
 				compareCmd.Usage()
 			} else {
-				compareCmd.Parse(os.Args[2:])
+				err := compareCmd.Parse(os.Args[2:])
+				if err != nil {
+					fmt.Printf("Cannot parse the args.\n")
+					return
+				}
 
 				cfg, err := readConfigFile(compareConfig)
 				if err != nil {
-					fmt.Println("Cannot read the config file.")
+					fmt.Printf("Cannot read the config file.\n")
 					return
 				}
-				Compare(cfg)
+				compare.Compare(cfg)
 			}
 
 		case "transfer":
 			if len(os.Args) <= 2 { // Invoked with this command but w/o any other args
 				transferCmd.Usage()
 			} else {
-				transferCmd.Parse(os.Args[2:])
+				err := transferCmd.Parse(os.Args[2:])
+				if err != nil {
+					fmt.Printf("Cannot parse the args.\n")
+					return
+				}
 
 				cfg, err := readConfigFile(transferConfig)
 				if err != nil {
-					fmt.Println("Cannot read the config file.")
+					fmt.Printf("Cannot read the config file.\n")
 					return
 				}
 				Transfer(cfg, transferCurrency, transferFrom, transferTo, transferQuan)
