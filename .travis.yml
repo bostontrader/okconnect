@@ -4,6 +4,8 @@ go:
   - 1.14.x
 
 script:
-  # -L follow redirects
-  # - curl -L https://github.com/bostontrader/oktest/raw/master/test-script.sh | bash
-  source $(curl -L https://raw.githubusercontent.com/bostontrader/oktest/master/test-script.sh)
+  - go get github.com/bostontrader/okcatbox
+  - go get github.com/bostontrader/okconnect
+  - go get github.com/bostontrader/okprobe
+
+  - go run main.go
