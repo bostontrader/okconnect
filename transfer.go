@@ -86,8 +86,8 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 	}
 
 	// 2. Validate the source and destination code and determine the relevant bookwerx categories to use.
-	var catSource int32
-	var catDest int32
+	var catSource uint32
+	var catDest uint32
 
 	// 2.1 They should not be the same.
 	if *transferFrom == *transferTo {

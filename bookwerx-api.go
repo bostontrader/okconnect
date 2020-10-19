@@ -14,11 +14,11 @@ import (
 )
 
 type AId struct {
-	Id int32 `json:"accounts-id"`
+	Id uint32 `json:"accounts-id"`
 }
 
 type LID struct {
-	LastInsertID int32
+	LastInsertID uint32
 }
 
 // Given a response object, read the body and return it as a string.  Deal with the error message if necessary.
@@ -30,7 +30,7 @@ func bodyString(resp *http.Response) string {
 	return string(body)
 }
 
-func createDistribution(client *httpclient.Client, accountId int32, amt int64, exp int32, txid int32, cfg config.Config) (did int32, err error) {
+func createDistribution(client *httpclient.Client, accountId uint32, amt int64, exp int32, txid uint32, cfg config.Config) (did uint32, err error) {
 
 	url1 := fmt.Sprintf("%s/distributions", cfg.BookwerxConfig.Server)
 	url2 := fmt.Sprintf("apikey=%s&account_id=%d&amount=%d&amount_exp=%d&transaction_id=%d",
@@ -43,14 +43,14 @@ func createDistribution(client *httpclient.Client, accountId int32, amt int64, e
 	if err != nil {
 		s := fmt.Sprintf("bookwerx-api.go createDistribution 1: %v", err)
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		s := fmt.Sprintf("bookwerx-api.go createDistribution 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, bodyString(resp))
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 
 	var insert LID
@@ -59,13 +59,13 @@ func createDistribution(client *httpclient.Client, accountId int32, amt int64, e
 	if err != nil {
 		s := fmt.Sprintf("bookwerx-api.go createDistribution 3: %v", err)
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 
 	return insert.LastInsertID, nil
 }
 
-func createTransaction(client *httpclient.Client, time string, cfg config.Config) (txid int32, err error) {
+func createTransaction(client *httpclient.Client, time string, cfg config.Config) (txid uint32, err error) {
 
 	url1 := fmt.Sprintf("%s/transactions", cfg.BookwerxConfig.Server)
 	url2 := fmt.Sprintf("apikey=%s&notes=deposit&time=%s", cfg.BookwerxConfig.APIKey, time)
@@ -78,13 +78,13 @@ func createTransaction(client *httpclient.Client, time string, cfg config.Config
 	if err != nil {
 		s := fmt.Sprintf("bookwerx-api.go createTransaction 1: %v", err)
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 
 	if resp.StatusCode != 200 {
 		s := fmt.Sprintf("bookwerx-api.go createTransaction 2: Expected status=200, Received=%d, Body=%v", resp.StatusCode, bodyString(resp))
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 
 	var insert LID
@@ -93,7 +93,7 @@ func createTransaction(client *httpclient.Client, time string, cfg config.Config
 	if err != nil {
 		s := fmt.Sprintf("bookwerx-api.go createTransaction 3: %v", err)
 		fmt.Println(s)
-		return -1, errors.New(s)
+		return 0, errors.New(s)
 	}
 	txid = insert.LastInsertID
 

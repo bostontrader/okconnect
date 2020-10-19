@@ -19,13 +19,13 @@ type BookwerxConfig struct {
 
 	// Any user account that is a...
 	// ... funding account shall be tagged with this category
-	FundingCat int32 `yaml:"funding_cat"`
+	FundingCat uint32 `yaml:"funding_cat"`
 
 	// ... spot available account shall be tagged with this category
-	SpotAvailableCat int32 `yaml:"spot_available_cat"`
+	SpotAvailableCat uint32 `yaml:"spot_available_cat"`
 
 	// ... spot hold account shall be tagged with this category
-	SpotHoldCat int32 `yaml:"spot_hold_cat"`
+	SpotHoldCat uint32 `yaml:"spot_hold_cat"`
 }
 
 type OKExConfig struct {

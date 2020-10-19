@@ -31,12 +31,12 @@ type Comparison struct {
 	OKExBalance     MaybeBalance
 	BookwerxBalance MaybeBalance
 	CurrencySymbol  string // OKEx uses a currency symbol as a currency id
-	AccountID       int32  // This is the account id for bookwerx
+	AccountID       uint32 // This is the account id for bookwerx
 }
 
 // 2. Define some structs for use in interfacing with Bookwerx
 type AccountCurrency struct {
-	AccountID int32 `json:"account_id"`
+	AccountID uint32 `json:"account_id"`
 	Title     string
 	Currency  CurrencySymbol
 }
@@ -47,7 +47,7 @@ type BalanceResultDecorated struct {
 }
 
 type CurrencySymbol struct {
-	CurrencyID int32 `json:"currency_id"`
+	CurrencyID uint32 `json:"currency_id"`
 	Symbol     string
 }
 
@@ -343,7 +343,7 @@ func Compare(cfg *config.Config) {
 	// 3.2.1.2 Insert whatever balance info is found into the comparison chart for the spot-available section.
 	/*for _, brd := range sums {
 
-			b1 := decimal.New(brd.Sum.Amount, int32(brd.Sum.Exp))
+			b1 := decimal.New(brd.Sum.Amount, uint32(brd.Sum.Exp))
 
 			i, ok := comparisonEntriesFunding[brd.Account.Currency.Symbol]
 			if ok {
@@ -378,7 +378,7 @@ func Compare(cfg *config.Config) {
 	// 3.2.2.2 Insert whatever balance info is found into the comparison chart for the funding section.
 	for _, brd := range sums {
 
-		b1 := decimal.New(brd.Sum.Amount, int32(brd.Sum.Exp))
+		b1 := decimal.New(brd.Sum.Amount, uint32(brd.Sum.Exp))
 
 		i, ok := comparisonEntriesSpotH[brd.Account.Currency.Symbol]
 		if ok {
