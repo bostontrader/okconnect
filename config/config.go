@@ -7,30 +7,35 @@ import (
 	"io/ioutil"
 )
 
+// OKConnect needs to talk to an OKEx server and a bookwerx-core-rust server.
 type Config struct {
 	BookwerxConfig BookwerxConfig
 	OKExConfig     OKExConfig
 }
 
-// This is the configuration for a bookwerx core server and apikey for an ordinary user.
+// What does OKConnect need to know in order to communicate with a bookwerx-core-rust server?
 type BookwerxConfig struct {
-	APIKey string
-	Server string
+	APIKey  string
+	BaseURL string `yaml:"base_url"` // for example: http:185.183.96.73:3003
 
 	// Any user account that is a...
 	// ... funding account shall be tagged with this category
-	FundingCat uint32 `yaml:"funding_cat"`
+	CatFunding uint32 `yaml:"cat_funding"`
 
 	// ... spot available account shall be tagged with this category
-	SpotAvailableCat uint32 `yaml:"spot_available_cat"`
+	CatSpotAvailable uint32 `yaml:"cat_spot_available"`
 
 	// ... spot hold account shall be tagged with this category
-	SpotHoldCat uint32 `yaml:"spot_hold_cat"`
+	CatSpotHold uint32 `yaml:"cat_spot_hold"`
+
+	// Any transaction that is a...
+	// ... deposit into OKEx funding shall be tagged with this category
+	CatDeposit uint32 `yaml:"cat_deposit"`
 }
 
 type OKExConfig struct {
 	Credentials string
-	Server      string
+	BaseURL     string `yaml:"base_url"` // for example: https:www.okex.com
 }
 
 // Read the given credentials file for OKEx or the OKCatbox.

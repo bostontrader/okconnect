@@ -32,7 +32,7 @@ func bodyString(resp *http.Response) string {
 
 func createDistribution(client *httpclient.Client, accountId uint32, amt int64, exp int32, txid uint32, cfg config.Config) (did uint32, err error) {
 
-	url1 := fmt.Sprintf("%s/distributions", cfg.BookwerxConfig.Server)
+	url1 := fmt.Sprintf("%s/distributions", cfg.BookwerxConfig.BaseURL)
 	url2 := fmt.Sprintf("apikey=%s&account_id=%d&amount=%d&amount_exp=%d&transaction_id=%d",
 		cfg.BookwerxConfig.APIKey, accountId, amt, exp, txid)
 
@@ -67,7 +67,7 @@ func createDistribution(client *httpclient.Client, accountId uint32, amt int64, 
 
 func createTransaction(client *httpclient.Client, time string, cfg config.Config) (txid uint32, err error) {
 
-	url1 := fmt.Sprintf("%s/transactions", cfg.BookwerxConfig.Server)
+	url1 := fmt.Sprintf("%s/transactions", cfg.BookwerxConfig.BaseURL)
 	url2 := fmt.Sprintf("apikey=%s&notes=deposit&time=%s", cfg.BookwerxConfig.APIKey, time)
 
 	h := make(map[string][]string)

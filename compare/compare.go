@@ -62,7 +62,7 @@ type Sums struct {
 
 // Make the API call to get all funding balances from OKEx
 func getWallet(cfg config.Config, credentials utils.Credentials) ([]utils.WalletEntry, error) {
-	urlBase := cfg.OKExConfig.Server
+	urlBase := cfg.OKExConfig.BaseURL
 	endpoint := "/api/account/v3/wallet"
 	url := urlBase + endpoint
 	client := okchttp.GetHTTPClient(urlBase)
@@ -114,7 +114,7 @@ func getWallet(cfg config.Config, credentials utils.Credentials) ([]utils.Wallet
 
 // Make the API call to get all spot balances from OKEx.  This gives us both available and hold balances.
 func getAccounts(cfg config.Config, credentials utils.Credentials) ([]utils.AccountsEntry, error) {
-	urlBase := cfg.OKExConfig.Server
+	urlBase := cfg.OKExConfig.BaseURL
 	endpoint := "/api/spot/v3/accounts"
 	url := urlBase + endpoint
 	client := okchttp.GetHTTPClient(urlBase)
@@ -245,8 +245,8 @@ func Compare(cfg *config.Config) {
 
 	// 2.2 ... from Bookwerx
 	// Get the account balances for all accounts tagged as funding_cat.
-	categories := fmt.Sprintf("%d", cfg.BookwerxConfig.FundingCat)
-	url := fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.Server, cfg.BookwerxConfig.APIKey, categories)
+	categories := fmt.Sprintf("%d", cfg.BookwerxConfig.CatFunding)
+	url := fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.BaseURL, cfg.BookwerxConfig.APIKey, categories)
 
 	sums, err := getCategoryDistSums(url)
 	if err != nil {

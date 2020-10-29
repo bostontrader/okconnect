@@ -97,9 +97,9 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 
 	// 2.2 Source...
 	if *transferFrom == "1" {
-		catSource = cfg.BookwerxConfig.SpotAvailableCat
+		catSource = cfg.BookwerxConfig.CatSpotAvailable
 	} else if *transferFrom == "6" {
-		catSource = cfg.BookwerxConfig.FundingCat
+		catSource = cfg.BookwerxConfig.CatFunding
 	} else {
 		fmt.Printf("transfer.go: The transferFrom parameter %d must be 1 or 6\n", transferFrom)
 		return
@@ -107,9 +107,9 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 
 	// 2.3 Destination...
 	if *transferTo == "1" {
-		catDest = cfg.BookwerxConfig.SpotAvailableCat
+		catDest = cfg.BookwerxConfig.CatSpotAvailable
 	} else if *transferTo == "6" {
-		catDest = cfg.BookwerxConfig.FundingCat
+		catDest = cfg.BookwerxConfig.CatFunding
 	} else {
 		fmt.Printf("transfer.go: The transferTo parameter %d must be 1 or 6\n", transferTo)
 		return
@@ -171,7 +171,7 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 	join2 := "JOIN%20currencies%20ON%20currencies.id%3daccounts.currency_id"
 	where := fmt.Sprintf("WHERE%%20category_id%%3d%d%%20AND%%20currencies.symbol%%3d'%s'", catSource, *transferCurrency)
 	query := fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
-	url := fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
+	url := fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.BaseURL, query, cfg.BookwerxConfig.APIKey)
 
 	body, err := bwapi.Get(clientB, url)
 	if err != nil {
@@ -209,7 +209,7 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 	//cat2 := cfg.BookwerxConfig.SpotAvailableCat;
 	where = fmt.Sprintf("WHERE%%20category_id%%3d%d%%20AND%%20currencies.symbol%%3d'%s'", catDest, *transferCurrency)
 	query = fmt.Sprintf("%s%%20%s%%20%s%%20%s%%20%s", selectt, from, join1, join2, where)
-	url = fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.Server, query, cfg.BookwerxConfig.APIKey)
+	url = fmt.Sprintf("%s/sql?query=%s&apikey=%s", cfg.BookwerxConfig.BaseURL, query, cfg.BookwerxConfig.APIKey)
 
 	body, err = bwapi.Get(clientB, url)
 	if err != nil {
@@ -294,7 +294,7 @@ func Transfer(cfg *config.Config, transferCurrency *string, transferFrom *string
 
 // Make the API call to perform the transfer on okex
 func accountTransfer(cfg config.Config, credentials utils.Credentials) (AccountTransferResult, error) {
-	urlBase := cfg.OKExConfig.Server
+	urlBase := cfg.OKExConfig.BaseURL
 	endpoint := "/api/account/v3/transfer"
 	url := urlBase + endpoint
 	client := okchttp.GetHTTPClient(urlBase)
