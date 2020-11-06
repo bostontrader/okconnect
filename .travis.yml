@@ -7,5 +7,6 @@ script:
   - go get github.com/bostontrader/okcatbox
   - go get github.com/bostontrader/okconnect
   - go get github.com/bostontrader/okprobe
+  - go get github.com/bostontrader/oktest
 
-  - go run main.go
+  - oktest
