@@ -290,7 +290,7 @@ func Compare(cfg *config.Config) {
 	comparisonEntriesSpotA := make(map[string]Comparison)
 	for _, accountsEntry := range accountsEntries {
 
-		b, err := decimal.NewFromString(accountsEntry.Balance)
+		b, err := decimal.NewFromString(accountsEntry.Available)
 		mb := MaybeBalance{b, false}
 		if err != nil {
 			mb = MaybeBalance{decimal.NewFromInt(0), true}
@@ -310,7 +310,7 @@ func Compare(cfg *config.Config) {
 	comparisonEntriesSpotH := make(map[string]Comparison)
 	for _, accountsEntry := range accountsEntries {
 
-		b, err := decimal.NewFromString(accountsEntry.Balance)
+		b, err := decimal.NewFromString(accountsEntry.Hold)
 		mb := MaybeBalance{b, false}
 		if err != nil {
 			mb = MaybeBalance{decimal.NewFromInt(0), true}
@@ -325,74 +325,6 @@ func Compare(cfg *config.Config) {
 		}
 		comparisonEntriesSpotH[accountsEntry.CurrencyID] = comparison // this is really the currency symbol
 	}
-
-	// 3.2 ... from Bookwerx
-
-	// 3.2.1 ... for accounts tagged as spot_available_cat.
-
-	// 3.2.1.1 Get the account balances for all relevant accounts.
-	/*categories = fmt.Sprintf("%d", cfg.BookwerxConfig.FundingCat)
-	url = fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.Server, cfg.BookwerxConfig.APIKey, categories)
-
-	sums, err = getCategoryDistSums(url)
-	if err != nil {
-		fmt.Printf("Cannot execute the getCategoryDistSums API endpoint.")
-		return
-	} */
-
-	// 3.2.1.2 Insert whatever balance info is found into the comparison chart for the spot-available section.
-	/*for _, brd := range sums {
-
-			b1 := decimal.New(brd.Sum.Amount, uint32(brd.Sum.Exp))
-
-			i, ok := comparisonEntriesFunding[brd.Account.Currency.Symbol]
-			if ok {
-				// The entry is found, replace the BookwerxBalance
-				i.BookwerxBalance = MaybeBalance{b1, false}
-				i.AccountID = brd.Account.AccountID
-				comparisonEntriesSpotH[brd.Account.Currency.Symbol] = i
-			} else {
-				// The entry is not found, build a new entry
-				comparisonEntriesSpotH[brd.Account.Currency.Symbol] = Comparison{
-					"Spot-Available",
-	        		MaybeBalance{decimal.NewFromInt(0), true},
-					MaybeBalance{b1, false},
-					brd.Account.Currency.Symbol,
-					brd.Account.AccountID,
-				}
-			}
-		} */
-
-	// 3.2.2 ... for accounts tagged as spot_hold_cat.
-
-	// 3.2.2.1 Get the account balances for all relevant accounts.
-	/*categories = fmt.Sprintf("%d", cfg.BookwerxConfig.FundingCat)
-	url = fmt.Sprintf("%s/category_dist_sums?apikey=%s&category_id=%s&decorate=true", cfg.BookwerxConfig.Server, cfg.BookwerxConfig.APIKey, categories)
-
-	sums, err = getCategoryDistSums(url)
-	if err != nil {
-		fmt.Printf("Cannot execute the getCategoryDistSums API endpoint.")
-		return
-	}
-
-	// 3.2.2.2 Insert whatever balance info is found into the comparison chart for the funding section.
-	for _, brd := range sums {
-
-		b1 := decimal.New(brd.Sum.Amount, uint32(brd.Sum.Exp))
-
-		i, ok := comparisonEntriesSpotH[brd.Account.Currency.Symbol]
-		if ok {
-			// The entry is found, replace the BookwerxBalance
-			i.BookwerxBalance = MaybeBalance{b1, false}
-			comparisonEntriesSpotH[brd.Account.Currency.Symbol] = i
-		} else {
-			// The entry is not found, build a new entry
-			comparisonEntriesSpotH[brd.Account.Currency.Symbol] = Comparison{
-				OKExBalance:     MaybeBalance{decimal.NewFromInt(0), true},
-				BookwerxBalance: MaybeBalance{b1, false},
-			}
-		}
-	} */
 
 	// 4. Build the return value
 	retValA := make([]Comparison, 0)
